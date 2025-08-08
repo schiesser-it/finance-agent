@@ -1,5 +1,6 @@
-import React from "react";
 import { Box, Text } from "ink";
+import React from "react";
+
 import { FileMatch } from "../types.js";
 
 interface FileSearchProps {

@@ -1,12 +1,13 @@
-import React, { useEffect } from "react";
 import { Box, useInput, useApp } from "ink";
 import type { Key } from "ink";
-import Header from "./components/Header.js";
-import OutputDisplay from "./components/OutputDisplay.js";
-import InputPrompt from "./components/InputPrompt.js";
+import React, { useEffect } from "react";
+
 import FileSearch from "./components/FileSearch.js";
-import { useFileSearch } from "./hooks/useFileSearch.js";
+import Header from "./components/Header.js";
+import InputPrompt from "./components/InputPrompt.js";
+import OutputDisplay from "./components/OutputDisplay.js";
 import { useCommands } from "./hooks/useCommands.js";
+import { useFileSearch } from "./hooks/useFileSearch.js";
 import { useInputState } from "./hooks/useInput.js";
 
 const App: React.FC = () => {

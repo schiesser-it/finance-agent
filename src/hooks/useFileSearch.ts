@@ -1,6 +1,8 @@
-import { useState, useCallback } from "react";
 import * as fs from "fs";
 import * as path from "path";
+
+import { useState, useCallback } from "react";
+
 import { FileMatch } from "../types.js";
 
 export const useFileSearch = () => {
@@ -37,6 +39,11 @@ export const useFileSearch = () => {
     }
   }, []);
 
+  const clearFileSearch = useCallback(() => {
+    setFileMatches([]);
+    setShowingFiles(false);
+  }, []);
+
   const updateFileMatches = useCallback(
     async (inputText: string) => {
       const atIndex = inputText.lastIndexOf("@");
@@ -55,13 +62,8 @@ export const useFileSearch = () => {
         clearFileSearch();
       }
     },
-    [findFiles],
+    [findFiles, clearFileSearch],
   );
-
-  const clearFileSearch = useCallback(() => {
-    setFileMatches([]);
-    setShowingFiles(false);
-  }, []);
 
   const selectPreviousFile = useCallback(() => {
     setSelectedFileIndex((prev) => Math.max(0, prev - 1));

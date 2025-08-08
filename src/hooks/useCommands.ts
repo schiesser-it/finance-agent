@@ -1,9 +1,11 @@
-import { useState, useCallback, useRef } from "react";
-import { useApp } from "ink";
-import { ClaudeService } from "../services/claudeService.js";
-import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from "../services/prompts.js";
 import { existsSync, unlinkSync } from "node:fs";
 import path from "node:path";
+
+import { useApp } from "ink";
+import { useState, useCallback, useRef, useMemo } from "react";
+
+import { ClaudeService } from "../services/claudeService.js";
+import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from "../services/prompts.js";
 
 const INITIAL_MESSAGES = [
   "Welcome to Interactive CLI!",
@@ -23,12 +25,15 @@ export const useCommands = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const { exit } = useApp();
 
-  const availableCommands = [
-    "/status - Show current CLI status",
-    "/help - Show available commands",
-    "/restart - Delete the notebook to start fresh",
-    "/quit - Exit the application",
-  ];
+  const availableCommands = useMemo(
+    () => [
+      "/status - Show current CLI status",
+      "/help - Show available commands",
+      "/restart - Delete the notebook to start fresh",
+      "/quit - Exit the application",
+    ],
+    [],
+  );
 
   const handleCommand = useCallback(
     async (command: string) => {
