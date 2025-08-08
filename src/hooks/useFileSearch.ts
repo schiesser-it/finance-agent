@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
-import * as fs from 'fs';
-import * as path from 'path';
-import { FileMatch } from '../types.js';
+import { useState, useCallback } from "react";
+import * as fs from "fs";
+import * as path from "path";
+import { FileMatch } from "../types.js";
 
 export const useFileSearch = () => {
   const [fileMatches, setFileMatches] = useState<FileMatch[]>([]);
@@ -13,7 +13,7 @@ export const useFileSearch = () => {
       const findFilesRecursive = (dir: string, files: string[] = []): string[] => {
         const items = fs.readdirSync(dir);
         for (const item of items) {
-          if (item === 'node_modules' || item === '.git' || item === 'dist') continue;
+          if (item === "node_modules" || item === ".git" || item === "dist") continue;
           const fullPath = path.join(dir, item);
           if (fs.statSync(fullPath).isDirectory()) {
             findFilesRecursive(fullPath, files);
@@ -23,37 +23,40 @@ export const useFileSearch = () => {
         }
         return files;
       };
-      
-      const allFiles = findFilesRecursive('.');
+
+      const allFiles = findFilesRecursive(".");
       return allFiles
-        .filter(file => file.toLowerCase().includes(query.toLowerCase()))
+        .filter((file) => file.toLowerCase().includes(query.toLowerCase()))
         .slice(0, 10)
-        .map(file => ({
-          path: file.replace('./', ''),
-          display: path.basename(file)
+        .map((file) => ({
+          path: file.replace("./", ""),
+          display: path.basename(file),
         }));
     } catch {
       return [];
     }
   }, []);
 
-  const updateFileMatches = useCallback(async (inputText: string) => {
-    const atIndex = inputText.lastIndexOf('@');
-    
-    if (atIndex !== -1) {
-      const query = inputText.substring(atIndex + 1);
-      if (query.length > 0 && !query.includes(' ')) {
-        const matches = await findFiles(query);
-        setFileMatches(matches);
-        setShowingFiles(matches.length > 0);
-        setSelectedFileIndex(0);
+  const updateFileMatches = useCallback(
+    async (inputText: string) => {
+      const atIndex = inputText.lastIndexOf("@");
+
+      if (atIndex !== -1) {
+        const query = inputText.substring(atIndex + 1);
+        if (query.length > 0 && !query.includes(" ")) {
+          const matches = await findFiles(query);
+          setFileMatches(matches);
+          setShowingFiles(matches.length > 0);
+          setSelectedFileIndex(0);
+        } else {
+          clearFileSearch();
+        }
       } else {
         clearFileSearch();
       }
-    } else {
-      clearFileSearch();
-    }
-  }, [findFiles]);
+    },
+    [findFiles],
+  );
 
   const clearFileSearch = useCallback(() => {
     setFileMatches([]);
@@ -61,11 +64,11 @@ export const useFileSearch = () => {
   }, []);
 
   const selectPreviousFile = useCallback(() => {
-    setSelectedFileIndex(prev => Math.max(0, prev - 1));
+    setSelectedFileIndex((prev) => Math.max(0, prev - 1));
   }, []);
 
   const selectNextFile = useCallback(() => {
-    setSelectedFileIndex(prev => Math.min(fileMatches.length - 1, prev + 1));
+    setSelectedFileIndex((prev) => Math.min(fileMatches.length - 1, prev + 1));
   }, [fileMatches.length]);
 
   return {
@@ -75,6 +78,6 @@ export const useFileSearch = () => {
     updateFileMatches,
     clearFileSearch,
     selectPreviousFile,
-    selectNextFile
+    selectNextFile,
   };
 };

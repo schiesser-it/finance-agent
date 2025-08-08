@@ -1,0 +1,6 @@
+dist/
+node_modules/
+jupyter_env/
+data/
+
+

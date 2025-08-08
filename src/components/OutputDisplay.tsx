@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Text } from 'ink';
+import React from "react";
+import { Box, Text } from "ink";
 
 interface OutputDisplayProps {
   output: string[];
@@ -13,7 +13,7 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({ output }) => {
   return (
     <Box flexDirection="column" marginBottom={1}>
       {output.map((line, index) => (
-        <Text key={index} color={line.startsWith('>') ? 'green' : 'white'}>
+        <Text key={index} color={line.startsWith(">") ? "green" : "white"}>
           {line}
         </Text>
       ))}

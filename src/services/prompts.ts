@@ -1,8 +1,8 @@
-import { existsSync } from 'node:fs';
-import path from 'node:path';
+import { existsSync } from "node:fs";
+import path from "node:path";
 
-export const NOTEBOOK_FILE = 'analysis.ipynb';
-const ADD_GRAPH_PROMPT = 'Make sure to tell a story and add supporting visual pleasing graphs.';
+export const NOTEBOOK_FILE = "analysis.ipynb";
+const ADD_GRAPH_PROMPT = "Make sure to tell a story and add supporting visual pleasing graphs.";
 
 export const buildPromptWithNotebookPrefix = (userPrompt: string): string => {
   const notebookPath = path.resolve(process.cwd(), NOTEBOOK_FILE);

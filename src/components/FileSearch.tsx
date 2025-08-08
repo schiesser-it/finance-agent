@@ -1,6 +1,6 @@
-import React from 'react';
-import { Box, Text } from 'ink';
-import { FileMatch } from '../types.js';
+import React from "react";
+import { Box, Text } from "ink";
+import { FileMatch } from "../types.js";
 
 interface FileSearchProps {
   fileMatches: FileMatch[];
@@ -8,11 +8,7 @@ interface FileSearchProps {
   isVisible: boolean;
 }
 
-const FileSearch: React.FC<FileSearchProps> = ({ 
-  fileMatches, 
-  selectedIndex, 
-  isVisible 
-}) => {
+const FileSearch: React.FC<FileSearchProps> = ({ fileMatches, selectedIndex, isVisible }) => {
   if (!isVisible || fileMatches.length === 0) {
     return null;
   }
@@ -21,10 +17,10 @@ const FileSearch: React.FC<FileSearchProps> = ({
     <Box flexDirection="column" marginTop={1} marginLeft={2}>
       <Text color="yellow">Files matching your query:</Text>
       {fileMatches.map((file, index) => (
-        <Text 
-          key={index} 
-          color={index === selectedIndex ? 'black' : 'white'}
-          backgroundColor={index === selectedIndex ? 'white' : undefined}
+        <Text
+          key={index}
+          color={index === selectedIndex ? "black" : "white"}
+          backgroundColor={index === selectedIndex ? "white" : undefined}
         >
           {file.path}
         </Text>

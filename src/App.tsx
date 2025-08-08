@@ -1,17 +1,17 @@
-import React, { useEffect } from 'react';
-import { Box, useInput, useApp } from 'ink';
-import type { Key } from 'ink';
-import Header from './components/Header.js';
-import OutputDisplay from './components/OutputDisplay.js';
-import InputPrompt from './components/InputPrompt.js';
-import FileSearch from './components/FileSearch.js';
-import { useFileSearch } from './hooks/useFileSearch.js';
-import { useCommands } from './hooks/useCommands.js';
-import { useInputState } from './hooks/useInput.js';
+import React, { useEffect } from "react";
+import { Box, useInput, useApp } from "ink";
+import type { Key } from "ink";
+import Header from "./components/Header.js";
+import OutputDisplay from "./components/OutputDisplay.js";
+import InputPrompt from "./components/InputPrompt.js";
+import FileSearch from "./components/FileSearch.js";
+import { useFileSearch } from "./hooks/useFileSearch.js";
+import { useCommands } from "./hooks/useCommands.js";
+import { useInputState } from "./hooks/useInput.js";
 
 const App: React.FC = () => {
   const { exit } = useApp();
-  
+
   const {
     fileMatches,
     selectedFileIndex,
@@ -19,24 +19,13 @@ const App: React.FC = () => {
     updateFileMatches,
     clearFileSearch,
     selectPreviousFile,
-    selectNextFile
+    selectNextFile,
   } = useFileSearch();
 
-  const {
-    output,
-    handleCommand,
-    executePrompt,
-    isExecuting,
-    abortExecution
-  } = useCommands();
+  const { output, handleCommand, executePrompt, isExecuting, abortExecution } = useCommands();
 
-  const {
-    input,
-    clearInput,
-    addCharacter,
-    removeLastCharacter,
-    insertFileReference
-  } = useInputState();
+  const { input, clearInput, addCharacter, removeLastCharacter, insertFileReference } =
+    useInputState();
 
   useEffect(() => {
     updateFileMatches(input);
@@ -51,7 +40,7 @@ const App: React.FC = () => {
 
   const handleInputSubmission = () => {
     const trimmedInput = input.trim();
-    if (trimmedInput.startsWith('/')) {
+    if (trimmedInput.startsWith("/")) {
       handleCommand(trimmedInput);
     } else if (trimmedInput.length > 0) {
       executePrompt(trimmedInput);
@@ -60,7 +49,7 @@ const App: React.FC = () => {
   };
 
   useInput((inputChar: string, key: Key) => {
-    if (key.ctrl && inputChar === 'c') {
+    if (key.ctrl && inputChar === "c") {
       if (isExecuting) {
         abortExecution();
         return;
@@ -70,7 +59,7 @@ const App: React.FC = () => {
     }
 
     // Block other key presses during execution
-     if (isExecuting) {
+    if (isExecuting) {
       return;
     }
 
@@ -113,7 +102,7 @@ const App: React.FC = () => {
       <Header />
       <OutputDisplay output={output} />
       <InputPrompt input={input} isExecuting={isExecuting} />
-      <FileSearch 
+      <FileSearch
         fileMatches={fileMatches}
         selectedIndex={selectedFileIndex}
         isVisible={showingFiles}
