@@ -31,7 +31,7 @@ class MessageRenderer {
             return block.text;
           }
           if (block.type === 'tool_use') {
-            return `[Tool: ${block.name}] ${JSON.stringify(block.input, null, 2)}`;
+            return `[Using Tool: ${block.name}]`;
           }
           return `[${block.type}] ${JSON.stringify(block)}`;
         })
@@ -89,14 +89,6 @@ class MessageRenderer {
       `🔧 System initialized`,
       `Model: ${message.model}`,
       `Working Directory: ${message.cwd}`,
-      `Permission Mode: ${message.permissionMode}`,
-      `Tools: ${message.tools.join(', ')}`,
-      message.mcp_servers.length > 0 
-        ? `MCP Servers: ${message.mcp_servers.map(s => `${s.name} (${s.status})`).join(', ')}`
-        : '',
-      message.slash_commands.length > 0
-        ? `Commands: ${message.slash_commands.join(', ')}`
-        : ''
     ].filter(Boolean).join('\n');
   }
 
@@ -129,7 +121,8 @@ export class ClaudeService {
         options: {
           // maxTurns: 3,
           abortController,
-          customSystemPrompt: SYSTEM_PROMPT
+          customSystemPrompt: SYSTEM_PROMPT,
+          permissionMode: 'bypassPermissions'
         },
       })) {
         const renderedMessage = MessageRenderer.renderMessage(message);
