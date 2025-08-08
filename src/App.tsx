@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, useInput, useApp } from 'ink';
+import type { Key } from 'ink';
 import Header from './components/Header.js';
 import OutputDisplay from './components/OutputDisplay.js';
 import InputPrompt from './components/InputPrompt.js';
@@ -58,7 +59,7 @@ const App: React.FC = () => {
     clearInput();
   };
 
-  useInput((inputChar, key) => {
+  useInput((inputChar: string, key: Key) => {
     if (key.ctrl && inputChar === 'c') {
       if (isExecuting) {
         abortExecution();

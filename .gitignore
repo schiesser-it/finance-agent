@@ -5,3 +5,4 @@ node_modules/
 prompts/
 
 analysis.ipynb
+.DS_Store

@@ -1,13 +1,16 @@
 import { useState, useCallback, useRef } from 'react';
 import { useApp } from 'ink';
 import { ClaudeService } from '../services/claudeService.js';
-import { buildPromptWithNotebookPrefix } from '../services/prompts.js';
+import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from '../services/prompts.js';
+import { existsSync, unlinkSync } from 'node:fs';
+import path from 'node:path';
 
 const INITIAL_MESSAGES = [
   'Welcome to Interactive CLI!',
   'Available commands:',
   '  /status - Show current CLI status',
   '  /help - Show available commands', 
+  '  /restart - Delete the notebook to start fresh',
   '  /quit - Exit the application',
   'Type @ followed by text to reference files.',
   'Enter any text as a prompt to execute it.',
@@ -23,6 +26,7 @@ export const useCommands = () => {
   const availableCommands = [
     '/status - Show current CLI status',
     '/help - Show available commands',
+    '/restart - Delete the notebook to start fresh',
     '/quit - Exit the application'
   ];
 
@@ -34,6 +38,33 @@ export const useCommands = () => {
     
     if (command === '/help') {
       setOutput(prev => [...prev, '> /help', 'Available commands:', ...availableCommands]);
+      return;
+    }
+    
+    if (command === '/restart') {
+      const notebookPath = path.resolve(process.cwd(), NOTEBOOK_FILE);
+      try {
+        if (existsSync(notebookPath)) {
+          unlinkSync(notebookPath);
+          setOutput(prev => [
+            ...prev,
+            '> /restart',
+            `Removed \`${NOTEBOOK_FILE}\`. Next run will create a fresh notebook.`
+          ]);
+        } else {
+          setOutput(prev => [
+            ...prev,
+            '> /restart',
+            `No \`${NOTEBOOK_FILE}\` found. Nothing to remove.`
+          ]);
+        }
+      } catch (error) {
+        setOutput(prev => [
+          ...prev,
+          '> /restart',
+          `Error removing \`${NOTEBOOK_FILE}\`: ${error instanceof Error ? error.message : String(error)}`
+        ]);
+      }
       return;
     }
     
