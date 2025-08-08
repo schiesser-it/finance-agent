@@ -8,7 +8,7 @@
     "finance-agent": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup src/index.tsx --format esm --minify --platform node --target node20 --out-dir dist --clean --no-splitting",
     "dev": "tsx src/index.tsx",
     "start": "node dist/index.js",
     "prepare": "pnpm build",
@@ -45,8 +45,8 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.2",
     "prettier": "^3.6.2",
-    "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "tsup": "^8.5.0",
+    "tsx": "^4.7.0"
   },
   "keywords": [
     "cli",
