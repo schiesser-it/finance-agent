@@ -31,7 +31,7 @@ class MessageRenderer {
             return block.text;
           }
           if (block.type === 'tool_use') {
-            return `[Using Tool: ${block.name}]`;
+            return `Using '${block.name}' tool...`;
           }
           return `[${block.type}] ${JSON.stringify(block)}`;
         })
@@ -52,7 +52,7 @@ class MessageRenderer {
             return `User: ${block.text}`;
           }
           if (block.type === 'tool_result') {
-            return `[Tool Result: ${block.tool_use_id}] ${block.content}`;
+            return `done.`;
           }
           return `[User ${block.type}] ${JSON.stringify(block)}`;
         })
@@ -70,7 +70,6 @@ class MessageRenderer {
         `Turns: ${message.num_turns}`,
         `Cost: $${message.total_cost_usd.toFixed(4)}`,
         `Tokens: ${message.usage.input_tokens} input + ${message.usage.output_tokens} output`,
-        message.result ? `Result: ${message.result}` : ''
       ].filter(Boolean).join('\n');
     }
     
