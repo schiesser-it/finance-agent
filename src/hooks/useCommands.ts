@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { spawn } from 'child_process';
+import { useState, useCallback, useRef } from 'react';
 import { useApp } from 'ink';
+import { ClaudeService } from '../services/claudeService.js';
 
 const INITIAL_MESSAGES = [
   'Welcome to Interactive CLI!',
@@ -15,6 +15,8 @@ const INITIAL_MESSAGES = [
 
 export const useCommands = () => {
   const [output, setOutput] = useState<string[]>(INITIAL_MESSAGES);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const { exit } = useApp();
 
   const availableCommands = [
@@ -43,22 +45,55 @@ export const useCommands = () => {
   }, [exit, availableCommands]);
 
   const executePrompt = useCallback((prompt: string) => {
+    if (isExecuting) {
+      return; // Block if already executing
+    }
+
+    setIsExecuting(true);
     setOutput(prev => [...prev, `> ${prompt}`]);
     
-    const child = spawn('echo', [prompt], { stdio: 'pipe' });
+    // Create new abort controller for this execution
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     
-    child.stdout.on('data', (data) => {
-      setOutput(prev => [...prev, data.toString().trim()]);
+    // Execute in a non-blocking way
+    ClaudeService.executePrompt(prompt, {
+      abortController,
+      onMessage: (message: string) => {
+        setOutput(prev => [...prev, message]);
+      }
+    }).then(response => {
+      if (!response.success && response.error) {
+        // Check if it's an abort-related error
+        if (response.error.includes('aborted') || response.error.includes('cancelled')) {
+          setOutput(prev => [...prev, '⚠️  Operation cancelled by user']);
+        } else {
+          setOutput(prev => [...prev, `Error: ${response.error}`]);
+        }
+      }
+    }).catch(error => {
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        setOutput(prev => [...prev, '⚠️  Operation cancelled by user']);
+      } else {
+        setOutput(prev => [...prev, `Error: ${error instanceof Error ? error.message : String(error)}`]);
+      }
+    }).finally(() => {
+      setIsExecuting(false);
+      abortControllerRef.current = null;
     });
-    
-    child.stderr.on('data', (data) => {
-      setOutput(prev => [...prev, `Error: ${data.toString().trim()}`]);
-    });
+  }, [isExecuting]);
+
+  const abortExecution = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
   }, []);
 
   return {
     output,
     handleCommand,
-    executePrompt
+    executePrompt,
+    isExecuting,
+    abortExecution
   };
 };

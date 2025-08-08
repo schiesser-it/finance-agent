@@ -24,7 +24,9 @@ const App: React.FC = () => {
   const {
     output,
     handleCommand,
-    executePrompt
+    executePrompt,
+    isExecuting,
+    abortExecution
   } = useCommands();
 
   const {
@@ -58,7 +60,16 @@ const App: React.FC = () => {
 
   useInput((inputChar, key) => {
     if (key.ctrl && inputChar === 'c') {
+      if (isExecuting) {
+        abortExecution();
+        return;
+      }
       exit();
+      return;
+    }
+
+    // Block other key presses during execution
+     if (isExecuting) {
       return;
     }
 
@@ -100,7 +111,7 @@ const App: React.FC = () => {
     <Box flexDirection="column">
       <Header />
       <OutputDisplay output={output} />
-      <InputPrompt input={input} />
+      <InputPrompt input={input} isExecuting={isExecuting} />
       <FileSearch 
         fileMatches={fileMatches}
         selectedIndex={selectedFileIndex}
