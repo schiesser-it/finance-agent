@@ -7,3 +7,5 @@ prompts/
 analysis.ipynb
 .DS_Store
 dist/
+
+finance-agent-*.tgz

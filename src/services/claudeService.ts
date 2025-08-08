@@ -7,7 +7,7 @@ import {
   type SDKSystemMessage,
 } from "@anthropic-ai/claude-code";
 
-import { SYSTEM_PROMPT } from "./prompts";
+import { SYSTEM_PROMPT } from "./prompts.js";
 
 export interface ClaudeOptions {
   abortController?: AbortController;

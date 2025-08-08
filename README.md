@@ -15,7 +15,8 @@ Interactive financial analyst generating Jupyter Notebooks using Claude Code.
 
 ## Run
 
-- `pnpm dev`
+- `pnpm dev` for development
+- `pnpm build && pnpm start` for production
 
 ## Usage
 
