@@ -8,7 +8,7 @@
     "finance-agent": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup src/index.tsx --format esm --minify --platform node --target node20 --out-dir dist --clean --no-splitting",
+    "build": "tsup src/index.tsx --format esm --minify --platform node --target node22 --out-dir dist --clean --no-splitting",
     "dev": "tsx src/index.tsx",
     "start": "node dist/index.js",
     "prepare": "pnpm build",
@@ -23,7 +23,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public"
@@ -34,7 +34,7 @@
     "react": "^18.2.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.5",
+    "@types/node": "^22",
     "@types/react": "^18.2.48",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
