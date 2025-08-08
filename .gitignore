@@ -3,3 +3,5 @@ jupyter_env/
 
 node_modules/
 prompts/
+
+analysis.ipynb

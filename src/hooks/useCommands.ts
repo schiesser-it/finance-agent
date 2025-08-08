@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useApp } from 'ink';
 import { ClaudeService } from '../services/claudeService.js';
+import { buildPromptWithNotebookPrefix } from '../services/prompts.js';
 
 const INITIAL_MESSAGES = [
   'Welcome to Interactive CLI!',
@@ -51,13 +52,14 @@ export const useCommands = () => {
 
     setIsExecuting(true);
     setOutput(prev => [...prev, `> ${prompt}`]);
+    const calculatedPrompt = buildPromptWithNotebookPrefix(prompt);
     
     // Create new abort controller for this execution
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     
     // Execute in a non-blocking way
-    ClaudeService.executePrompt(prompt, {
+    ClaudeService.executePrompt(calculatedPrompt, {
       abortController,
       onMessage: (message: string) => {
         setOutput(prev => [...prev, message]);
