@@ -1,11 +1,11 @@
 {
-  "name": "interactive-cli",
-  "version": "1.0.0",
-  "description": "Interactive command line tool with React and Ink",
+  "name": "finance-agent",
+  "version": "0.0.1",
+  "description": "Interactive coding assistant for Jupyter Notebooks for Finance",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "interactive-cli": "./dist/index.js"
+    "finance-agent": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -40,6 +40,5 @@
     "interactive",
     "react",
     "ink"
-  ],
-  "license": "MIT"
+  ]
 }

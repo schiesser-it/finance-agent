@@ -8,9 +8,8 @@ import { ClaudeService } from "../services/claudeService.js";
 import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from "../services/prompts.js";
 
 const INITIAL_MESSAGES = [
-  "Welcome to Interactive CLI!",
+  "Welcome to Finance Agent!",
   "Available commands:",
-  "  /status - Show current CLI status",
   "  /help - Show available commands",
   "  /restart - Delete the notebook to start fresh",
   "  /quit - Exit the application",
@@ -27,7 +26,6 @@ export const useCommands = () => {
 
   const availableCommands = useMemo(
     () => [
-      "/status - Show current CLI status",
       "/help - Show available commands",
       "/restart - Delete the notebook to start fresh",
       "/quit - Exit the application",
@@ -37,11 +35,6 @@ export const useCommands = () => {
 
   const handleCommand = useCallback(
     async (command: string) => {
-      if (command === "/status") {
-        setOutput((prev) => [...prev, "> /status", "Status: Interactive CLI is running"]);
-        return;
-      }
-
       if (command === "/help") {
         setOutput((prev) => [...prev, "> /help", "Available commands:", ...availableCommands]);
         return;
