@@ -1,0 +1,5 @@
+jupyter_env/
+.ipynb_checkpoints/
+
+node_modules/
+prompts/

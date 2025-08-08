@@ -1,0 +1,27 @@
+{
+  "name": "interactive-cli",
+  "version": "1.0.0",
+  "description": "Interactive command line tool with React and Ink",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "interactive-cli": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.tsx",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "ink": "^4.4.1",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@types/react": "^18.2.48",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "keywords": ["cli", "interactive", "react", "ink"],
+  "license": "MIT"
+}
