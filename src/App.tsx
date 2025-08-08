@@ -125,7 +125,7 @@ const App: React.FC = () => {
     if (atIndex !== -1) {
       const beforeAt = input.substring(0, atIndex);
       const afterAt = input.substring(input.indexOf(' ', atIndex) !== -1 ? input.indexOf(' ', atIndex) : input.length);
-      const newInput = `${beforeAt}@${filePath}${afterAt}`;
+      const newInput = `${beforeAt}@${filePath} ${afterAt}`;
       setInput(newInput);
     }
     
@@ -148,7 +148,7 @@ const App: React.FC = () => {
         setSelectedFileIndex(prev => Math.min(fileMatches.length - 1, prev + 1));
         return;
       }
-      if (key.return) {
+      if (key.return || key.tab) {
         insertFileReference(fileMatches[selectedFileIndex].path);
         return;
       }
