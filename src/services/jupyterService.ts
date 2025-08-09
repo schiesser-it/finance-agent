@@ -27,7 +27,9 @@ export function getDefaultPackages(): string[] {
 export function isVenvReady(): boolean {
   const pythonPath = getVenvPythonPath();
   const pipPath = getVenvPipPath();
-  return existsSync(pythonPath) && existsSync(pipPath);
+  const jupyterPath = getVenvJupyterPath();
+  // Consider the environment ready only if the venv exists AND jupyter is installed.
+  return existsSync(pythonPath) && existsSync(pipPath) && existsSync(jupyterPath);
 }
 
 export async function ensureVenvAndPackages(opts?: {
