@@ -1,4 +1,4 @@
-import { Box, useInput, useApp } from "ink";
+import { Box, useInput, useApp, Text } from "ink";
 import type { Key } from "ink";
 import React, { useEffect } from "react";
 
@@ -6,11 +6,12 @@ import FileSearch from "./components/FileSearch.js";
 import Header from "./components/Header.js";
 import InputPrompt from "./components/InputPrompt.js";
 import OutputDisplay from "./components/OutputDisplay.js";
+import VenvSetupGate from "./components/VenvSetupGate.js";
 import { useCommands } from "./hooks/useCommands.js";
 import { useFileSearch } from "./hooks/useFileSearch.js";
 import { useInputState } from "./hooks/useInput.js";
 
-const App: React.FC = () => {
+const MainUI: React.FC = () => {
   const { exit } = useApp();
 
   const {
@@ -54,7 +55,6 @@ const App: React.FC = () => {
     } else if (trimmedInput.length > 0) {
       executePrompt(trimmedInput);
     }
-    // Save history after handling
     if (trimmedInput.length > 0) {
       pushHistory(trimmedInput);
     }
@@ -71,7 +71,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Block other key presses during execution
     if (isExecuting) {
       return;
     }
@@ -95,7 +94,6 @@ const App: React.FC = () => {
       }
     }
 
-    // Command history navigation when not in file selection
     if (key.upArrow) {
       historyPrev();
       return;
@@ -123,6 +121,16 @@ const App: React.FC = () => {
   return (
     <Box flexDirection="column">
       <Header />
+      <Box flexDirection="column" marginBottom={1}>
+        <Text color="cyan">
+          Type any text as your prompt, use /help to see available commands, or Ctrl+C to quit
+        </Text>
+        <Text color="gray">
+          {
+            "Type @ followed to reference files (e.g., @readme will show files containing 'readme')."
+          }
+        </Text>
+      </Box>
       <OutputDisplay output={output} />
       <InputPrompt input={input} isExecuting={isExecuting} />
       <FileSearch
@@ -131,6 +139,14 @@ const App: React.FC = () => {
         isVisible={showingFiles}
       />
     </Box>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <VenvSetupGate onReady={() => {}}>
+      <MainUI />
+    </VenvSetupGate>
   );
 };
 

@@ -33,31 +33,52 @@ export function isVenvReady(): boolean {
 export async function ensureVenvAndPackages(opts?: {
   packages?: string[];
   onMessage?: (line: string) => void;
+  signal?: AbortSignal;
 }): Promise<void> {
   ensureConfigDir();
   const venvDir = getVenvDir();
   const pythonPath = getVenvPythonPath();
-  const pipPath = getVenvPipPath();
   const packages = opts?.packages ?? DEFAULT_PACKAGES;
   const onMessage = opts?.onMessage ?? (() => {});
 
   if (!existsSync(pythonPath)) {
     onMessage(`Setting up Python venv at ${venvDir} ...`);
     const pythonExe = detectPythonExecutable();
-    await runCommand(pythonExe, ["-m", "venv", venvDir], { onMessage });
+    await runCommand(pythonExe, ["-m", "venv", venvDir], { onMessage, signal: opts?.signal });
   }
 
-  onMessage("Installing/updating required Python packages ...");
+  await updateVenvPackages({ packages, onMessage, signal: opts?.signal });
+}
+
+export async function updateVenvPackages(opts?: {
+  packages?: string[];
+  onMessage?: (line: string) => void;
+  signal?: AbortSignal;
+}): Promise<void> {
+  const pipPath = getVenvPipPath();
+  const packages = opts?.packages ?? DEFAULT_PACKAGES;
+  const onMessage = opts?.onMessage ?? (() => {});
+
+  if (!existsSync(pipPath)) {
+    throw new Error("Python venv is not installed. Restart the app to set it up.");
+  }
+
+  onMessage("Updating Python packages ...");
   const pipOnMessage = (chunk: string) => {
-    // Split to handle multi-line chunks from stdout/stderr
     for (const line of chunk.split(/\r?\n/)) {
       if (!line) continue;
       if (line.startsWith("Requirement already satisfied:")) continue;
       onMessage(line);
     }
   };
-  await runCommand(pipPath, ["install", "--upgrade", "pip"], { onMessage: pipOnMessage });
-  await runCommand(pipPath, ["install", ...packages], { onMessage: pipOnMessage });
+  await runCommand(pipPath, ["install", "--upgrade", "pip"], {
+    onMessage: pipOnMessage,
+    signal: opts?.signal,
+  });
+  await runCommand(pipPath, ["install", ...packages], {
+    onMessage: pipOnMessage,
+    signal: opts?.signal,
+  });
 }
 
 export function isServerRunning(): boolean {
@@ -191,15 +212,36 @@ function readTextFile(p: string): string {
 async function runCommand(
   cmd: string,
   args: string[],
-  opts?: { cwd?: string; onMessage?: (line: string) => void },
+  opts?: { cwd?: string; onMessage?: (line: string) => void; signal?: AbortSignal },
 ): Promise<void> {
   const onMessage = opts?.onMessage ?? (() => {});
   await new Promise<void>((resolve, reject) => {
     const child = spawn(cmd, args, { cwd: opts?.cwd, stdio: ["ignore", "pipe", "pipe"] });
+    let aborted = false;
+    const onAbort = () => {
+      aborted = true;
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        // ignore
+      }
+    };
+    if (opts?.signal) {
+      if (opts.signal.aborted) onAbort();
+      opts.signal.addEventListener("abort", onAbort);
+    }
     child.stdout.on("data", (d) => onMessage(String(d).trim()));
     child.stderr.on("data", (d) => onMessage(String(d).trim()));
-    child.on("error", reject);
+    child.on("error", (err) => {
+      if (opts?.signal) opts.signal.removeEventListener("abort", onAbort);
+      reject(err);
+    });
     child.on("close", (code) => {
+      if (opts?.signal) opts.signal.removeEventListener("abort", onAbort);
+      if (aborted) {
+        reject(new Error("aborted"));
+        return;
+      }
       if (code === 0) resolve();
       else reject(new Error(`${cmd} ${args.join(" ")} exited with code ${code}`));
     });

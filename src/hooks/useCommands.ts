@@ -6,43 +6,29 @@ import { useState, useCallback, useRef, useMemo } from "react";
 
 import { ClaudeService } from "../services/claudeService.js";
 import {
-  ensureVenvAndPackages,
   isVenvReady,
   startServerInBackground,
   stopServer,
   isServerRunning,
   getDefaultPackages,
+  updateVenvPackages,
 } from "../services/jupyterService.js";
 import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from "../services/prompts.js";
 
-const INITIAL_MESSAGES = [
-  "Welcome to Finance Agent!",
-  "Available commands:",
-  "  /help   - Show available commands",
-  "  /start  - Start Jupyter Notebook server",
-  "  /stop   - Stop Jupyter Notebook server",
-  "  /setup  - Install Jupyter venv into $HOME/.finance-agent",
-  "  /restart- Delete the notebook to start fresh",
-  "  /quit   - Exit the application",
-  "Type @ followed by text to reference files.",
-  "Enter any text as a prompt to execute it.",
-  "",
-];
-
 export const useCommands = () => {
-  const [output, setOutput] = useState<string[]>(INITIAL_MESSAGES);
+  const [output, setOutput] = useState<string[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const { exit } = useApp();
 
   const availableCommands = useMemo(
     () => [
-      "/help   - Show available commands",
-      "/start  - Start Jupyter Notebook server",
-      "/stop   - Stop Jupyter Notebook server",
-      "/setup  - Install Jupyter venv into $HOME/.finance-agent",
-      "/restart- Delete the notebook to start fresh",
-      "/quit   - Exit the application",
+      "/help       - Show available commands",
+      "/start      - Start Jupyter Notebook server",
+      "/stop       - Stop Jupyter Notebook server",
+      "/update-env - Update Python packages in the venv",
+      "/restart    - Delete the notebook to start fresh",
+      "/quit       - Exit the application",
     ],
     [],
   );
@@ -55,18 +41,18 @@ export const useCommands = () => {
         return;
       }
 
-      if (command === "/setup") {
-        setOutput((prev) => [...prev, "Installing environment ..."]);
+      if (command === "/update-env") {
+        setOutput((prev) => [...prev, "Updating environment packages ..."]);
         try {
-          await ensureVenvAndPackages({
+          await updateVenvPackages({
             packages: getDefaultPackages(),
             onMessage: (line) => setOutput((prev) => [...prev, line]),
           });
-          setOutput((prev) => [...prev, "✅ Environment ready."]);
+          setOutput((prev) => [...prev, "✅ Packages updated."]);
         } catch (error) {
           setOutput((prev) => [
             ...prev,
-            `Error setting up environment: ${error instanceof Error ? error.message : String(error)}`,
+            `Error updating packages: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
         return;
@@ -74,7 +60,10 @@ export const useCommands = () => {
 
       if (command === "/start") {
         if (!isVenvReady()) {
-          setOutput((prev) => [...prev, "Environment not installed. Run /setup first."]);
+          setOutput((prev) => [
+            ...prev,
+            "Environment not installed. Restart the app to set it up.",
+          ]);
           return;
         }
         if (isServerRunning()) {
