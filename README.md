@@ -4,7 +4,7 @@ Interactive financial analyst generating Jupyter Notebooks using Claude Code.
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - Jupyter Notebook
 - pnpm
 - Claude API key (https://console.anthropic.com/)
