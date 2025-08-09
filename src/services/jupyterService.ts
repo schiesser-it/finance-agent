@@ -48,8 +48,16 @@ export async function ensureVenvAndPackages(opts?: {
   }
 
   onMessage("Installing/updating required Python packages ...");
-  await runCommand(pipPath, ["install", "--upgrade", "pip"], { onMessage });
-  await runCommand(pipPath, ["install", ...packages], { onMessage });
+  const pipOnMessage = (chunk: string) => {
+    // Split to handle multi-line chunks from stdout/stderr
+    for (const line of chunk.split(/\r?\n/)) {
+      if (!line) continue;
+      if (line.startsWith("Requirement already satisfied:")) continue;
+      onMessage(line);
+    }
+  };
+  await runCommand(pipPath, ["install", "--upgrade", "pip"], { onMessage: pipOnMessage });
+  await runCommand(pipPath, ["install", ...packages], { onMessage: pipOnMessage });
 }
 
 export function isServerRunning(): boolean {
