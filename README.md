@@ -27,6 +27,12 @@ Interactive financial analyst generating Jupyter Notebooks using Claude Code.
 - While typing, reference files with `@` prefix. Example: type `@a` to list matches; Up/Down to highlight; Tab to insert the selected `@file` into the prompt.
 - Quit with `Ctrl+C`.
 
+## License and contributions
+
+- This project is licensed under **AGPL-3.0-only** (see `LICENSE`).
+- By contributing, you must agree to the project's **Contributor License Agreement (CLA)** (`CLA.md`). The CLA grants the maintainer (Marcus Schiesser) the right to use and relicense your contribution, including under commercial terms, while the open-source distribution remains under AGPL.
+- Pull requests must check the CLA box in the PR template; a CI check will block merges if not agreed.
+
 ## Examples
 
 ### 1. Get the latest performance data for S&P500 and DAX

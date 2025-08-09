@@ -4,6 +4,7 @@
   "description": "Interactive coding assistant for Jupyter Notebooks for Finance",
   "type": "module",
   "main": "dist/index.js",
+  "license": "AGPL-3.0-only",
   "bin": {
     "finance-agent": "./dist/index.js"
   },
