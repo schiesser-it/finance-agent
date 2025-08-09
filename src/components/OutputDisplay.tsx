@@ -11,7 +11,7 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({ output }) => {
   }
 
   return (
-    <Box flexDirection="column" marginBottom={1}>
+    <Box flexDirection="column">
       {output.map((line, index) => (
         <Text key={index} color={line.startsWith(">") ? "green" : "white"}>
           {line}
