@@ -1,8 +1,4 @@
-jupyter_env/
-.ipynb_checkpoints/
-
 node_modules/
-prompts/
 
 analysis.ipynb
 .DS_Store

@@ -23,9 +23,8 @@ module.exports = {
   settings: {
     react: { version: "detect" },
   },
-  ignorePatterns: ["dist/", "node_modules/", "jupyter_env/", "data/"],
+  ignorePatterns: ["dist/", "node_modules/", "data/"],
   rules: {
-    "react/react-in-jsx-scope": "off",
     "prettier/prettier": "error",
     "import/order": [
       "error",
