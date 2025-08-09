@@ -49,13 +49,14 @@ export const useCommands = () => {
 
   const handleCommand = useCallback(
     async (command: string) => {
+      setOutput((prev) => [...prev, `> ${command}`]);
       if (command === "/help") {
-        setOutput((prev) => [...prev, "> /help", "Available commands:", ...availableCommands]);
+        setOutput((prev) => [...prev, "Available commands:", ...availableCommands]);
         return;
       }
 
       if (command === "/setup") {
-        setOutput((prev) => [...prev, "> /setup", "Installing environment ..."]);
+        setOutput((prev) => [...prev, "Installing environment ..."]);
         try {
           await ensureVenvAndPackages({
             packages: getDefaultPackages(),
@@ -73,15 +74,11 @@ export const useCommands = () => {
 
       if (command === "/start") {
         if (!isVenvReady()) {
-          setOutput((prev) => [
-            ...prev,
-            "> /start",
-            "Environment not installed. Run /setup first.",
-          ]);
+          setOutput((prev) => [...prev, "Environment not installed. Run /setup first."]);
           return;
         }
         if (isServerRunning()) {
-          setOutput((prev) => [...prev, "> /start", "Server already running."]);
+          setOutput((prev) => [...prev, "Server already running."]);
           return;
         }
         try {
@@ -116,20 +113,14 @@ export const useCommands = () => {
             unlinkSync(notebookPath);
             setOutput((prev) => [
               ...prev,
-              "> /restart",
               `Removed \`${NOTEBOOK_FILE}\`. Next run will create a fresh notebook.`,
             ]);
           } else {
-            setOutput((prev) => [
-              ...prev,
-              "> /restart",
-              `No \`${NOTEBOOK_FILE}\` found. Nothing to remove.`,
-            ]);
+            setOutput((prev) => [...prev, `No \`${NOTEBOOK_FILE}\` found. Nothing to remove.`]);
           }
         } catch (error) {
           setOutput((prev) => [
             ...prev,
-            "> /restart",
             `Error removing \`${NOTEBOOK_FILE}\`: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
@@ -141,11 +132,7 @@ export const useCommands = () => {
         return;
       }
 
-      setOutput((prev) => [
-        ...prev,
-        `> ${command}`,
-        "Unknown command. Type /help for available commands.",
-      ]);
+      setOutput((prev) => [...prev, "Unknown command. Type /help for available commands."]);
     },
     [exit, availableCommands],
   );
