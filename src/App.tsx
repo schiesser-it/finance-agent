@@ -25,8 +25,16 @@ const App: React.FC = () => {
 
   const { output, handleCommand, executePrompt, isExecuting, abortExecution } = useCommands();
 
-  const { input, clearInput, addCharacter, removeLastCharacter, insertFileReference } =
-    useInputState();
+  const {
+    input,
+    clearInput,
+    addCharacter,
+    removeLastCharacter,
+    insertFileReference,
+    pushHistory,
+    historyPrev,
+    historyNext,
+  } = useInputState();
 
   useEffect(() => {
     updateFileMatches(input);
@@ -45,6 +53,10 @@ const App: React.FC = () => {
       handleCommand(trimmedInput);
     } else if (trimmedInput.length > 0) {
       executePrompt(trimmedInput);
+    }
+    // Save history after handling
+    if (trimmedInput.length > 0) {
+      pushHistory(trimmedInput);
     }
     clearInput();
   };
@@ -81,6 +93,16 @@ const App: React.FC = () => {
         clearFileSearch();
         return;
       }
+    }
+
+    // Command history navigation when not in file selection
+    if (key.upArrow) {
+      historyPrev();
+      return;
+    }
+    if (key.downArrow) {
+      historyNext();
+      return;
     }
 
     if (key.return) {
