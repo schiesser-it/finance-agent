@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, writeFileSync, openSync, closeSync, unlinkSync, readSync } from "node:fs";
+import { existsSync, writeFileSync, openSync, unlinkSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -16,9 +16,15 @@ export interface JupyterPackagesConfig {
   packages: string[];
 }
 
+export interface JupyterServerMeta {
+  pid: number;
+  port: number;
+  notebookDir: string;
+}
+
 const DEFAULT_PACKAGES: string[] = ["notebook", "pandas", "seaborn", "yfinance", "matplotlib"];
 
-const SERVER_PID_FILE = path.join(getConfigDir(), "jupyter.pid");
+const SERVER_META_FILE = path.join(getConfigDir(), "jupyter.meta.json");
 
 export function getDefaultPackages(): string[] {
   return [...DEFAULT_PACKAGES];
@@ -84,10 +90,10 @@ export async function updateVenvPackages(opts?: {
 }
 
 export function isServerRunning(): boolean {
-  if (!existsSync(SERVER_PID_FILE)) return false;
+  const meta = readServerMeta();
+  const pid = meta?.pid;
+  if (!pid || pid <= 0) return false;
   try {
-    const pid = Number(readTextFile(SERVER_PID_FILE).trim());
-    if (!pid) return false;
     process.kill(pid, 0);
     return true;
   } catch {
@@ -103,7 +109,8 @@ export async function startServerInBackground(opts?: {
   const onMessage = opts?.onMessage ?? (() => {});
   ensureConfigDir();
   const jupyterPath = getVenvJupyterPath();
-  const port = opts?.port ?? 8888;
+  const envPort = Number(process.env.JUPYTER_PORT || "");
+  const port = opts?.port ?? (Number.isFinite(envPort) && envPort > 0 ? envPort : 8888);
   const notebookDir = opts?.notebookDir ?? process.cwd();
   const logsDir = getLogsDir();
   const outPath = path.join(logsDir, "jupyter.out.log");
@@ -128,9 +135,11 @@ export async function startServerInBackground(opts?: {
     jupyterPath,
     [
       "notebook",
-      //   "--no-browser",
+      // Keep browser disabled here; we'll explicitly open URLs when needed
+      "--no-browser",
       "--ip=127.0.0.1",
       `--port=${port}`,
+      "--port-retries=0",
       `--NotebookApp.notebook_dir=${notebookDir}`,
       "--NotebookApp.token=",
       "--NotebookApp.password=",
@@ -142,7 +151,9 @@ export async function startServerInBackground(opts?: {
   );
 
   child.unref();
-  writeFileSync(SERVER_PID_FILE, String(child.pid));
+  writeFileSync(SERVER_META_FILE, JSON.stringify({ pid: child.pid, port, notebookDir }, null, 2), {
+    encoding: "utf8",
+  });
 
   // Let the UI know how to shutdown
   onMessage(`Jupyter started. Logs: ${outPath}. PID: ${child.pid}`);
@@ -150,19 +161,11 @@ export async function startServerInBackground(opts?: {
 
 export async function stopServer(opts?: { onMessage?: (line: string) => void }): Promise<void> {
   const onMessage = opts?.onMessage ?? (() => {});
-  if (!existsSync(SERVER_PID_FILE)) {
+  const meta = readServerMeta();
+  const pid = meta?.pid;
+  if (!pid || pid <= 0) {
     onMessage("No running Jupyter server found.");
-    return;
-  }
-  const pidText = readTextFile(SERVER_PID_FILE).trim();
-  const pid = Number(pidText);
-  if (!pid) {
-    onMessage("Invalid PID file. Cleaning up.");
-    try {
-      unlinkSync(SERVER_PID_FILE);
-    } catch {
-      // ignore
-    }
+    cleanupMetaFile();
     return;
   }
   onMessage("Stopping Jupyter server ...");
@@ -189,25 +192,59 @@ export async function stopServer(opts?: { onMessage?: (line: string) => void }):
       }
     }
 
-    try {
-      unlinkSync(SERVER_PID_FILE);
-    } catch {
-      // ignore
-    }
+    cleanupMetaFile();
     onMessage("✅ Jupyter server stopped.");
   } catch (e) {
     onMessage(`Error stopping server: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
-function readTextFile(p: string): string {
-  const fd = openSync(p, "r");
+export function getServerPort(): number {
+  const meta = readServerMeta();
+  if (meta?.port && meta.port > 0) return meta.port;
+  const envPort = Number(process.env.JUPYTER_PORT || "");
+  if (Number.isFinite(envPort) && envPort > 0) return envPort as number;
+  return 8888;
+}
+
+export async function openNotebookInBrowser(
+  notebookFilename: string,
+  opts?: {
+    onMessage?: (line: string) => void;
+  },
+): Promise<void> {
+  const onMessage = opts?.onMessage ?? (() => {});
+  const port = getServerPort();
+  const url = `http://127.0.0.1:${port}/notebooks/${encodeURIComponent(notebookFilename)}`;
+
   try {
-    const buffer = Buffer.alloc(64 * 1024);
-    const bytesRead = readSync(fd, buffer, 0, buffer.length, 0);
-    return buffer.toString("utf8", 0, bytesRead);
-  } finally {
-    closeSync(fd);
+    // macOS: use 'open' to launch default browser
+    const opener =
+      process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+    spawn(opener, [url], { stdio: "ignore", shell: process.platform === "win32" }).unref();
+    onMessage(`Opening notebook in browser: ${url}`);
+  } catch (e) {
+    onMessage(`Failed to open browser: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+function readServerMeta(): JupyterServerMeta | null {
+  try {
+    if (!existsSync(SERVER_META_FILE)) return null;
+    const metaRaw = readFileSync(SERVER_META_FILE, { encoding: "utf8" });
+    const meta = JSON.parse(metaRaw) as JupyterServerMeta;
+    if (typeof meta.pid === "number" && typeof meta.port === "number") return meta;
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function cleanupMetaFile(): void {
+  try {
+    if (existsSync(SERVER_META_FILE)) unlinkSync(SERVER_META_FILE);
+  } catch {
+    // ignore
   }
 }
 

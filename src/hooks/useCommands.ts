@@ -12,6 +12,7 @@ import {
   isServerRunning,
   getDefaultPackages,
   updateVenvPackages,
+  openNotebookInBrowser,
 } from "../services/jupyterService.js";
 import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from "../services/prompts.js";
 
@@ -155,6 +156,16 @@ export const useCommands = () => {
             } else {
               setOutput((prev) => [...prev, `Error: ${response.error}`]);
             }
+          } else if (response.success) {
+            // Open the updated notebook only on success
+            openNotebookInBrowser(NOTEBOOK_FILE, {
+              onMessage: (line) => setOutput((prev) => [...prev, line]),
+            }).catch((e) => {
+              setOutput((prev) => [
+                ...prev,
+                `Failed to open notebook: ${e instanceof Error ? e.message : String(e)}`,
+              ]);
+            });
           }
         })
         .catch((error) => {

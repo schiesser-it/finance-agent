@@ -1,7 +1,11 @@
+# TS
 node_modules/
-
-analysis.ipynb
-.DS_Store
 dist/
-
 finance-agent-*.tgz
+
+# OS
+.DS_Store
+
+# jupyter
+analysis.ipynb
+.ipynb_checkpoints/
