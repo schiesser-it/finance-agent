@@ -5,14 +5,25 @@ import { useApp } from "ink";
 import { useState, useCallback, useRef, useMemo } from "react";
 
 import { ClaudeService } from "../services/claudeService.js";
+import {
+  ensureVenvAndPackages,
+  isVenvReady,
+  startServerInBackground,
+  stopServer,
+  isServerRunning,
+  getDefaultPackages,
+} from "../services/jupyterService.js";
 import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from "../services/prompts.js";
 
 const INITIAL_MESSAGES = [
   "Welcome to Finance Agent!",
   "Available commands:",
-  "  /help - Show available commands",
-  "  /restart - Delete the notebook to start fresh",
-  "  /quit - Exit the application",
+  "  /help   - Show available commands",
+  "  /start  - Start Jupyter Notebook server",
+  "  /stop   - Stop Jupyter Notebook server",
+  "  /setup  - Install Jupyter venv into $HOME/.finance-agent",
+  "  /restart- Delete the notebook to start fresh",
+  "  /quit   - Exit the application",
   "Type @ followed by text to reference files.",
   "Enter any text as a prompt to execute it.",
   "",
@@ -26,9 +37,12 @@ export const useCommands = () => {
 
   const availableCommands = useMemo(
     () => [
-      "/help - Show available commands",
-      "/restart - Delete the notebook to start fresh",
-      "/quit - Exit the application",
+      "/help   - Show available commands",
+      "/start  - Start Jupyter Notebook server",
+      "/stop   - Stop Jupyter Notebook server",
+      "/setup  - Install Jupyter venv into $HOME/.finance-agent",
+      "/restart- Delete the notebook to start fresh",
+      "/quit   - Exit the application",
     ],
     [],
   );
@@ -37,6 +51,61 @@ export const useCommands = () => {
     async (command: string) => {
       if (command === "/help") {
         setOutput((prev) => [...prev, "> /help", "Available commands:", ...availableCommands]);
+        return;
+      }
+
+      if (command === "/setup") {
+        setOutput((prev) => [...prev, "> /setup", "Installing environment ..."]);
+        try {
+          await ensureVenvAndPackages({
+            packages: getDefaultPackages(),
+            onMessage: (line) => setOutput((prev) => [...prev, line]),
+          });
+          setOutput((prev) => [...prev, "✅ Environment ready."]);
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Error setting up environment: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
+        return;
+      }
+
+      if (command === "/start") {
+        if (!isVenvReady()) {
+          setOutput((prev) => [
+            ...prev,
+            "> /start",
+            "Environment not installed. Run /setup first.",
+          ]);
+          return;
+        }
+        if (isServerRunning()) {
+          setOutput((prev) => [...prev, "> /start", "Server already running."]);
+          return;
+        }
+        try {
+          await startServerInBackground({
+            onMessage: (line) => setOutput((prev) => [...prev, line]),
+          });
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Error starting server: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
+        return;
+      }
+
+      if (command === "/stop") {
+        try {
+          await stopServer({ onMessage: (line) => setOutput((prev) => [...prev, line]) });
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Error stopping server: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
         return;
       }
 
