@@ -139,7 +139,6 @@ export async function startServerInBackground(opts?: {
       "--no-browser",
       "--ip=127.0.0.1",
       `--port=${port}`,
-      "--port-retries=0",
       `--NotebookApp.notebook_dir=${notebookDir}`,
       "--NotebookApp.token=",
       "--NotebookApp.password=",

@@ -1,6 +1,6 @@
 import { Box, useInput, useApp, Text } from "ink";
 import type { Key } from "ink";
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 
 import FileSearch from "./components/FileSearch.js";
 import Header from "./components/Header.js";
@@ -10,6 +10,7 @@ import VenvSetupGate from "./components/VenvSetupGate.js";
 import { useCommands } from "./hooks/useCommands.js";
 import { useFileSearch } from "./hooks/useFileSearch.js";
 import { useInputState } from "./hooks/useInput.js";
+import { isServerRunning, startServerInBackground, stopServer } from "./services/jupyterService.js";
 
 const MainUI: React.FC = () => {
   const { exit } = useApp();
@@ -143,8 +144,25 @@ const MainUI: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const handleReady = useCallback(async () => {
+    try {
+      if (!isServerRunning()) {
+        await startServerInBackground();
+      }
+    } catch {
+      // best-effort startup; ignore errors here to avoid blocking the UI
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      // best-effort shutdown on app exit
+      void stopServer();
+    };
+  }, []);
+
   return (
-    <VenvSetupGate onReady={() => {}}>
+    <VenvSetupGate onReady={handleReady}>
       <MainUI />
     </VenvSetupGate>
   );
