@@ -28,7 +28,7 @@ export const useCommands = () => {
       "/examples   - Show example prompts",
       "/start      - Start Jupyter Notebook server",
       "/stop       - Stop Jupyter Notebook server",
-      "/update-env - Update Python packages in the venv",
+      "/update     - Update the Jupyter Notebook server",
       "/restart    - Delete the notebook to start fresh",
       "/quit       - Exit the application",
     ],
@@ -43,7 +43,7 @@ export const useCommands = () => {
         return;
       }
 
-      if (command === "/update-env") {
+      if (command === "/update") {
         setOutput((prev) => [...prev, "Updating environment packages ..."]);
         try {
           await updateVenvPackages({
