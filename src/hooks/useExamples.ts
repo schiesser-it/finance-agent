@@ -6,19 +6,9 @@ export const EXAMPLE_PROMPTS: string[] = [
 ];
 
 export const useExamples = () => {
-  const [isShowingExamples, setIsShowingExamples] = useState<boolean>(false);
   const [selectedExampleIndex, setSelectedExampleIndex] = useState<number>(0);
 
   const examples = useMemo(() => EXAMPLE_PROMPTS, []);
-
-  const showExamples = useCallback(() => {
-    setIsShowingExamples(true);
-    setSelectedExampleIndex(0);
-  }, []);
-
-  const hideExamples = useCallback(() => {
-    setIsShowingExamples(false);
-  }, []);
 
   const selectPreviousExample = useCallback(() => {
     setSelectedExampleIndex((prev) => Math.max(0, prev - 1));
@@ -32,7 +22,6 @@ export const useExamples = () => {
     (onSelected: (example: string) => void) => {
       if (examples.length === 0) return;
       const selected = examples[selectedExampleIndex];
-      setIsShowingExamples(false);
       onSelected(selected);
     },
     [examples, selectedExampleIndex],
@@ -40,10 +29,7 @@ export const useExamples = () => {
 
   return {
     examples,
-    isShowingExamples,
     selectedExampleIndex,
-    showExamples,
-    hideExamples,
     selectPreviousExample,
     selectNextExample,
     handleExampleSelection,

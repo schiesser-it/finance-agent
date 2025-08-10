@@ -16,7 +16,7 @@ import {
 } from "../services/jupyterService.js";
 import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from "../services/prompts.js";
 
-type RunningCommand = "execute" | "login" | null;
+type RunningCommand = "execute" | "login" | "examples" | null;
 
 export const useCommands = () => {
   const [output, setOutput] = useState<string[]>([]);
@@ -132,6 +132,11 @@ export const useCommands = () => {
         return;
       }
 
+      if (command === "/examples") {
+        setRunningCommand("examples");
+        return;
+      }
+
       setOutput((prev) => [...prev, "Unknown command. Type /help for available commands."]);
     },
     [exit, availableCommands],
@@ -143,8 +148,8 @@ export const useCommands = () => {
 
   const executePrompt = useCallback(
     (prompt: string) => {
-      if (runningCommand) {
-        return; // Block if a command is already running
+      if (runningCommand && runningCommand !== "examples") {
+        return; // Block if a command is already running (except when in examples picker)
       }
 
       setRunningCommand("execute");

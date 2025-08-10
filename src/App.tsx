@@ -31,10 +31,7 @@ const MainUI: React.FC = () => {
 
   const {
     examples,
-    isShowingExamples,
     selectedExampleIndex,
-    showExamples,
-    hideExamples,
     selectPreviousExample,
     selectNextExample,
     handleExampleSelection,
@@ -82,11 +79,6 @@ const MainUI: React.FC = () => {
     }
 
     if (effectiveInput.startsWith("/")) {
-      // Special-case /examples to open the examples picker
-      if (effectiveInput === "/examples") {
-        showExamples();
-        return;
-      }
       handleCommand(effectiveInput);
     } else {
       executePrompt(effectiveInput);
@@ -103,10 +95,6 @@ const MainUI: React.FC = () => {
         return;
       }
       exit();
-      return;
-    }
-
-    if (runningCommand !== null) {
       return;
     }
 
@@ -129,7 +117,11 @@ const MainUI: React.FC = () => {
       }
     }
 
-    if (isShowingExamples) {
+    if (runningCommand === "examples") {
+      if (key.escape) {
+        abortExecution();
+        return;
+      }
       if (key.upArrow) {
         selectPreviousExample();
         return;
@@ -142,10 +134,10 @@ const MainUI: React.FC = () => {
         handleExampleSelection(onExampleSelected);
         return;
       }
-      if (key.escape) {
-        hideExamples();
-        return;
-      }
+    }
+
+    if (runningCommand !== null) {
+      return;
     }
 
     if (key.upArrow) {
@@ -204,7 +196,7 @@ const MainUI: React.FC = () => {
           appendOutput("Login cancelled.");
         }}
       />
-      {isShowingExamples && (
+      {runningCommand === "examples" && (
         <ExamplesList examples={examples} selectedIndex={selectedExampleIndex} />
       )}
       <FileSearch
