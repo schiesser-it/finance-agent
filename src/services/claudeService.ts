@@ -119,6 +119,7 @@ export class ClaudeService {
           // maxTurns: 3,
           abortController,
           customSystemPrompt: SYSTEM_PROMPT,
+          // TODO: add proper permission handling
           permissionMode: "bypassPermissions",
         },
       })) {

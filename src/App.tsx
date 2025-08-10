@@ -1,6 +1,6 @@
 import { Box, useInput, useApp, Text } from "ink";
 import type { Key } from "ink";
-import React, { useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import FileSearch from "./components/FileSearch.js";
 import Header from "./components/Header.js";
@@ -38,6 +38,14 @@ const MainUI: React.FC = () => {
     historyNext,
   } = useInputState();
 
+  const [firstCommand, setFirstCommand] = useState(true);
+
+  const trimmedInput = useMemo(() => input.trim(), [input]);
+  const showExamples = useMemo(
+    () => firstCommand && trimmedInput.length === 0,
+    [firstCommand, trimmedInput],
+  );
+
   useEffect(() => {
     updateFileMatches(input);
   }, [input, updateFileMatches]);
@@ -50,16 +58,24 @@ const MainUI: React.FC = () => {
   };
 
   const handleInputSubmission = () => {
-    const trimmedInput = input.trim();
-    if (trimmedInput.startsWith("/")) {
-      handleCommand(trimmedInput);
-    } else if (trimmedInput.length > 0) {
-      executePrompt(trimmedInput);
+    const effectiveInput = showExamples ? "/examples" : trimmedInput;
+
+    if (effectiveInput.length === 0) {
+      clearInput();
+      if (firstCommand) setFirstCommand(false);
+      return;
     }
-    if (trimmedInput.length > 0) {
-      pushHistory(trimmedInput);
+
+    if (effectiveInput.startsWith("/")) {
+      handleCommand(effectiveInput);
+    } else {
+      executePrompt(effectiveInput);
     }
+
+    pushHistory(effectiveInput);
     clearInput();
+
+    if (firstCommand) setFirstCommand(false);
   };
 
   useInput((inputChar: string, key: Key) => {
@@ -124,7 +140,8 @@ const MainUI: React.FC = () => {
       <Header />
       <Box flexDirection="column" marginBottom={1}>
         <Text color="cyan">
-          Type any text as your prompt, use /help to see available commands, or Ctrl+C to quit
+          Type any text as your prompt, use /help to see available commands, /examples to show
+          examples, or Ctrl+C to quit
         </Text>
         <Text color="gray">
           {
@@ -133,7 +150,11 @@ const MainUI: React.FC = () => {
         </Text>
       </Box>
       <OutputDisplay output={output} />
-      <InputPrompt input={input} isExecuting={isExecuting} />
+      <InputPrompt
+        input={input}
+        isExecuting={isExecuting}
+        example={showExamples ? "/examples" : undefined}
+      />
       <FileSearch
         fileMatches={fileMatches}
         selectedIndex={selectedFileIndex}
