@@ -6,12 +6,14 @@ import ExamplesList from "./components/ExamplesList.js";
 import FileSearch from "./components/FileSearch.js";
 import Header from "./components/Header.js";
 import InputPrompt from "./components/InputPrompt.js";
+import LoginPrompt from "./components/LoginPrompt.js";
 import OutputDisplay from "./components/OutputDisplay.js";
 import VenvSetupGate from "./components/VenvSetupGate.js";
 import { useCommands } from "./hooks/useCommands.js";
 import { useExamples } from "./hooks/useExamples.js";
 import { useFileSearch } from "./hooks/useFileSearch.js";
 import { useInputState } from "./hooks/useInput.js";
+import { setAnthropicApiKeyForSessionAndPersist } from "./services/config.js";
 import { isServerRunning, startServerInBackground, stopServer } from "./services/jupyterService.js";
 
 const MainUI: React.FC = () => {
@@ -38,7 +40,8 @@ const MainUI: React.FC = () => {
     handleExampleSelection,
   } = useExamples();
 
-  const { output, handleCommand, executePrompt, isExecuting, abortExecution } = useCommands();
+  const { output, handleCommand, executePrompt, abortExecution, appendOutput, runningCommand } =
+    useCommands();
 
   const {
     input,
@@ -95,7 +98,7 @@ const MainUI: React.FC = () => {
 
   useInput((inputChar: string, key: Key) => {
     if (key.ctrl && inputChar === "c") {
-      if (isExecuting) {
+      if (runningCommand !== null) {
         abortExecution();
         return;
       }
@@ -103,7 +106,7 @@ const MainUI: React.FC = () => {
       return;
     }
 
-    if (isExecuting) {
+    if (runningCommand !== null) {
       return;
     }
 
@@ -186,8 +189,20 @@ const MainUI: React.FC = () => {
       <OutputDisplay output={output} />
       <InputPrompt
         input={input}
-        isExecuting={isExecuting}
+        isExecuting={runningCommand !== null}
         example={showExamplesHint ? "/examples" : undefined}
+      />
+      <LoginPrompt
+        visible={runningCommand === "login"}
+        onSubmit={(key) => {
+          setAnthropicApiKeyForSessionAndPersist(key);
+          abortExecution();
+          appendOutput("✅ API key saved. You can now use the agent.");
+        }}
+        onCancel={() => {
+          abortExecution();
+          appendOutput("Login cancelled.");
+        }}
       />
       {isShowingExamples && (
         <ExamplesList examples={examples} selectedIndex={selectedExampleIndex} />

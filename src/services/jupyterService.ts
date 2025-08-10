@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, writeFileSync, openSync, unlinkSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+import { openExternalUrl } from "./browser.js";
 import {
   ensureConfigDir,
   getConfigDir,
@@ -217,10 +218,7 @@ export async function openNotebookInBrowser(
   const url = `http://127.0.0.1:${port}/notebooks/${encodeURIComponent(notebookFilename)}`;
 
   try {
-    // macOS: use 'open' to launch default browser
-    const opener =
-      process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-    spawn(opener, [url], { stdio: "ignore", shell: process.platform === "win32" }).unref();
+    await openExternalUrl(url);
     onMessage(`Opening notebook in browser: ${url}`);
   } catch (e) {
     onMessage(`Failed to open browser: ${e instanceof Error ? e.message : String(e)}`);

@@ -13,7 +13,7 @@ const InputPrompt: React.FC<InputPromptProps> = ({ input, isExecuting = false, e
       <Text color="blue">{"> "}</Text>
       {example ? <Text color="gray">{example}</Text> : <Text>{input}</Text>}
       {isExecuting ? (
-        <Text color="yellow">[Agent Running... Press Ctrl+C to cancel]</Text>
+        <Text color="yellow">[Command Running... Press Ctrl+C to cancel]</Text>
       ) : (
         <Text>█</Text>
       )}

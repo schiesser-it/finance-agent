@@ -16,9 +16,12 @@ import {
 } from "../services/jupyterService.js";
 import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from "../services/prompts.js";
 
+type RunningCommand = "execute" | "login" | null;
+
 export const useCommands = () => {
   const [output, setOutput] = useState<string[]>([]);
-  const [isExecuting, setIsExecuting] = useState(false);
+  const [runningCommand, setRunningCommand] = useState<RunningCommand>(null);
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const { exit } = useApp();
 
@@ -30,6 +33,7 @@ export const useCommands = () => {
       "/stop       - Stop Jupyter Notebook server",
       "/update     - Update the Jupyter Notebook server",
       "/restart    - Delete the notebook to start fresh",
+      "/login      - Enter your Anthropic API key",
       "/quit       - Exit the application",
     ],
     [],
@@ -123,18 +127,27 @@ export const useCommands = () => {
         return;
       }
 
+      if (command === "/login") {
+        setRunningCommand("login");
+        return;
+      }
+
       setOutput((prev) => [...prev, "Unknown command. Type /help for available commands."]);
     },
     [exit, availableCommands],
   );
 
+  const appendOutput = useCallback((lines: string | string[]) => {
+    setOutput((prev) => [...prev, ...(Array.isArray(lines) ? lines : [lines])]);
+  }, []);
+
   const executePrompt = useCallback(
     (prompt: string) => {
-      if (isExecuting) {
-        return; // Block if already executing
+      if (runningCommand) {
+        return; // Block if a command is already running
       }
 
-      setIsExecuting(true);
+      setRunningCommand("execute");
       setOutput((prev) => [...prev, `> ${prompt}`]);
       const calculatedPrompt = buildPromptWithNotebookPrefix(prompt);
 
@@ -180,24 +193,26 @@ export const useCommands = () => {
           }
         })
         .finally(() => {
-          setIsExecuting(false);
+          setRunningCommand(null);
           abortControllerRef.current = null;
         });
     },
-    [isExecuting],
+    [runningCommand],
   );
 
   const abortExecution = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    setRunningCommand(null);
   }, []);
 
   return {
     output,
     handleCommand,
     executePrompt,
-    isExecuting,
     abortExecution,
+    appendOutput,
+    runningCommand,
   };
 };

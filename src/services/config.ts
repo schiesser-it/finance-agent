@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -45,4 +45,44 @@ export function getLogsDir(): string {
     mkdirSync(dir, { recursive: true });
   }
   return dir;
+}
+
+// ---- Anthropic API key helpers ----
+
+export function getAnthropicApiKeyFilePath(): string {
+  return path.join(getConfigDir(), "anthropic_api_key");
+}
+
+export function readAnthropicApiKeyFromConfig(): string | undefined {
+  try {
+    const keyFile = getAnthropicApiKeyFilePath();
+    if (!existsSync(keyFile)) {
+      return undefined;
+    }
+    const raw = readFileSync(keyFile, { encoding: "utf-8" });
+    const trimmed = raw.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function writeAnthropicApiKeyToConfig(apiKey: string): void {
+  ensureConfigDir();
+  const keyFile = getAnthropicApiKeyFilePath();
+  writeFileSync(keyFile, `${apiKey.trim()}\n`, { encoding: "utf-8" });
+}
+
+export function ensureAnthropicApiKeyEnvFromConfig(): void {
+  if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY.trim() === "") {
+    const fromConfig = readAnthropicApiKeyFromConfig();
+    if (fromConfig) {
+      process.env.ANTHROPIC_API_KEY = fromConfig;
+    }
+  }
+}
+
+export function setAnthropicApiKeyForSessionAndPersist(apiKey: string): void {
+  writeAnthropicApiKeyToConfig(apiKey);
+  process.env.ANTHROPIC_API_KEY = apiKey.trim();
 }

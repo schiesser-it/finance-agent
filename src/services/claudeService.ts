@@ -29,6 +29,9 @@ class MessageRenderer {
       return content
         .map((block) => {
           if (block.type === "text") {
+            if (block.text.startsWith("Invalid API key")) {
+              return "Invalid API key. Please call the /login command to login.";
+            }
             return block.text;
           }
           if (block.type === "tool_use") {
