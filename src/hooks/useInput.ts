@@ -1,14 +1,22 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 export const useInputState = () => {
   const [input, setInput] = useState("");
+  const [firstCommand, setFirstCommand] = useState(true);
   const [history, setHistory] = useState<string[]>([]);
   const [, setHistoryIndex] = useState<number | null>(null);
   const [draftBeforeHistory, setDraftBeforeHistory] = useState<string>("");
 
   const clearInput = useCallback(() => {
     setInput("");
+    setFirstCommand(false);
   }, []);
+
+  const trimmedInput = useMemo(() => input.trim(), [input]);
+  const showExamplesHint = useMemo(
+    () => firstCommand && trimmedInput.length === 0,
+    [firstCommand, trimmedInput],
+  );
 
   const addCharacter = useCallback((char: string) => {
     setInput((prev) => prev + char);
@@ -84,6 +92,8 @@ export const useInputState = () => {
     input,
     setInput,
     clearInput,
+    trimmedInput,
+    showExamplesHint,
     addCharacter,
     removeLastCharacter,
     insertFileReference,

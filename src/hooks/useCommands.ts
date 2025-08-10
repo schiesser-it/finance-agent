@@ -25,6 +25,7 @@ export const useCommands = () => {
   const availableCommands = useMemo(
     () => [
       "/help       - Show available commands",
+      "/examples   - Show example prompts",
       "/start      - Start Jupyter Notebook server",
       "/stop       - Stop Jupyter Notebook server",
       "/update-env - Update Python packages in the venv",

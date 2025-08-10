@@ -1,13 +1,15 @@
 import { Box, useInput, useApp, Text } from "ink";
 import type { Key } from "ink";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect } from "react";
 
+import ExamplesList from "./components/ExamplesList.js";
 import FileSearch from "./components/FileSearch.js";
 import Header from "./components/Header.js";
 import InputPrompt from "./components/InputPrompt.js";
 import OutputDisplay from "./components/OutputDisplay.js";
 import VenvSetupGate from "./components/VenvSetupGate.js";
 import { useCommands } from "./hooks/useCommands.js";
+import { useExamples } from "./hooks/useExamples.js";
 import { useFileSearch } from "./hooks/useFileSearch.js";
 import { useInputState } from "./hooks/useInput.js";
 import { isServerRunning, startServerInBackground, stopServer } from "./services/jupyterService.js";
@@ -25,11 +27,24 @@ const MainUI: React.FC = () => {
     selectNextFile,
   } = useFileSearch();
 
+  const {
+    examples,
+    isShowingExamples,
+    selectedExampleIndex,
+    showExamples,
+    hideExamples,
+    selectPreviousExample,
+    selectNextExample,
+    handleExampleSelection,
+  } = useExamples();
+
   const { output, handleCommand, executePrompt, isExecuting, abortExecution } = useCommands();
 
   const {
     input,
     clearInput,
+    trimmedInput,
+    showExamplesHint,
     addCharacter,
     removeLastCharacter,
     insertFileReference,
@@ -37,14 +52,6 @@ const MainUI: React.FC = () => {
     historyPrev,
     historyNext,
   } = useInputState();
-
-  const [firstCommand, setFirstCommand] = useState(true);
-
-  const trimmedInput = useMemo(() => input.trim(), [input]);
-  const showExamples = useMemo(
-    () => firstCommand && trimmedInput.length === 0,
-    [firstCommand, trimmedInput],
-  );
 
   useEffect(() => {
     updateFileMatches(input);
@@ -57,16 +64,26 @@ const MainUI: React.FC = () => {
     }
   };
 
+  const onExampleSelected = (selected: string) => {
+    executePrompt(selected);
+    pushHistory(selected);
+    clearInput();
+  };
+
   const handleInputSubmission = () => {
-    const effectiveInput = showExamples ? "/examples" : trimmedInput;
+    const effectiveInput = showExamplesHint ? "/examples" : trimmedInput;
 
     if (effectiveInput.length === 0) {
       clearInput();
-      if (firstCommand) setFirstCommand(false);
       return;
     }
 
     if (effectiveInput.startsWith("/")) {
+      // Special-case /examples to open the examples picker
+      if (effectiveInput === "/examples") {
+        showExamples();
+        return;
+      }
       handleCommand(effectiveInput);
     } else {
       executePrompt(effectiveInput);
@@ -74,8 +91,6 @@ const MainUI: React.FC = () => {
 
     pushHistory(effectiveInput);
     clearInput();
-
-    if (firstCommand) setFirstCommand(false);
   };
 
   useInput((inputChar: string, key: Key) => {
@@ -107,6 +122,25 @@ const MainUI: React.FC = () => {
       }
       if (key.escape) {
         clearFileSearch();
+        return;
+      }
+    }
+
+    if (isShowingExamples) {
+      if (key.upArrow) {
+        selectPreviousExample();
+        return;
+      }
+      if (key.downArrow) {
+        selectNextExample();
+        return;
+      }
+      if (key.return || key.tab) {
+        handleExampleSelection(onExampleSelected);
+        return;
+      }
+      if (key.escape) {
+        hideExamples();
         return;
       }
     }
@@ -153,8 +187,11 @@ const MainUI: React.FC = () => {
       <InputPrompt
         input={input}
         isExecuting={isExecuting}
-        example={showExamples ? "/examples" : undefined}
+        example={showExamplesHint ? "/examples" : undefined}
       />
+      {isShowingExamples && (
+        <ExamplesList examples={examples} selectedIndex={selectedExampleIndex} />
+      )}
       <FileSearch
         fileMatches={fileMatches}
         selectedIndex={selectedFileIndex}
