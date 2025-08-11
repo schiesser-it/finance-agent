@@ -1,5 +1,5 @@
 {
-  "name": "finance-agent",
+  "name": "finagent",
   "version": "0.0.1",
   "description": "Interactive coding assistant for Jupyter Notebooks for Finance",
   "type": "module",
@@ -10,7 +10,7 @@
     "url": "git@github.com:schiesser-it/finance-agent.git"
   },
   "bin": {
-    "finance-agent": "./dist/index.js"
+    "finagent": "./dist/index.js"
   },
   "scripts": {
     "build": "tsup src/index.tsx --format esm --minify --platform node --target node22 --out-dir dist --clean --no-splitting",

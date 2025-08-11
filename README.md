@@ -1,4 +1,4 @@
-Finance Agent CLI
+# FinAgent
 
 Interactive financial analyst generating Jupyter Notebooks using Claude Code. Brings its own Jupyter Notebook server for convenience.
 
