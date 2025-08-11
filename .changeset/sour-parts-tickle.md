@@ -2,4 +2,4 @@
 "finagent": patch
 ---
 
-Add model selector and set opus to default
+Add model selector and set sonnet to default

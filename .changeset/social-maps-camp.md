@@ -2,4 +2,4 @@
 "finagent": patch
 ---
 
-add scipy to jupyter
+add scipy and plotly to jupyter

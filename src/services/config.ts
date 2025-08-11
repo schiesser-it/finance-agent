@@ -104,7 +104,7 @@ export const MODEL_OPTIONS: ModelOption[] = [
   { key: "sonnet", label: "Claude Sonnet 4", id: "claude-sonnet-4-20250514" },
 ];
 
-export const DEFAULT_MODEL_ID = MODEL_OPTIONS[0].id;
+export const DEFAULT_MODEL_ID = MODEL_OPTIONS[1].id;
 
 export function getModelConfigFilePath(): string {
   return path.join(getConfigDir(), "model");

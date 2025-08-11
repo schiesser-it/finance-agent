@@ -2,15 +2,21 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 export const NOTEBOOK_FILE = "analysis.ipynb";
-const ADD_GRAPH_PROMPT = "Make sure to tell a story and add supporting visual pleasing graphs.";
+const ADD_GRAPH_PROMPT =
+  "Make sure to tell a story and add supporting visual pleasing graphs using plotly.";
 const YFINANCE_PROMPT =
   "When using yfinance, auto_adjust=True is now the default. This means that 'Open', 'High', 'Low', and 'Close' columns are all automatically adjusted for stock splits and dividends. No need to use e.g. 'Adj Close' anymore.";
 
-export const buildPromptWithNotebookPrefix = (userPrompt: string): string => {
+export const buildPromptWithNotebookPrefix = (
+  userPrompt: string,
+  options?: { includeGuidance?: boolean },
+): string => {
+  const includeGuidance = options?.includeGuidance !== false;
   const notebookPath = path.resolve(process.cwd(), NOTEBOOK_FILE);
+  const guidance = includeGuidance ? ` ${ADD_GRAPH_PROMPT} ${YFINANCE_PROMPT}` : "";
   const prefix = existsSync(notebookPath)
-    ? `update the jupyter notebook named ${NOTEBOOK_FILE}. ${ADD_GRAPH_PROMPT} ${YFINANCE_PROMPT}`
-    : `create a jupyter notebook named ${NOTEBOOK_FILE}. ${ADD_GRAPH_PROMPT} ${YFINANCE_PROMPT}`;
+    ? `update the jupyter notebook named ${NOTEBOOK_FILE}.${guidance}`
+    : `create a jupyter notebook named ${NOTEBOOK_FILE}.${guidance}`;
   return `${prefix} ${userPrompt}`;
 };
 
