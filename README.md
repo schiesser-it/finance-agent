@@ -6,17 +6,21 @@ Interactive financial analyst generating Jupyter Notebooks using Claude Code. Br
 
 - Node.js 22+ (get it from https://nodejs.org/en/download)
 - Python 3.12+
-- pnpm (for development)
 - Anthropic API key (get it from https://console.anthropic.com/)
 
-## Install
+## Run 
 
-- `pnpm install` (no dev deps required)
+First, install the tool by calling:
+```
+npm i -g finagent
+```
+Then, you can run the tool by calling `finagent`.
 
-## Run
+## Development
 
-- `pnpm dev` for development
-- `pnpm build && pnpm start` for production
+- `npm install` 
+- `npm run dev` for development build
+- `npm run build && npm start` for production build
 
 ## Usage
 
