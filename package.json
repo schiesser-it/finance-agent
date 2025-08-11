@@ -7,10 +7,10 @@
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "git@github.com:schiesser-it/finance-agent.git"
+    "url": "git+ssh://git@github.com/schiesser-it/finance-agent.git"
   },
   "bin": {
-    "finagent": "./dist/index.js"
+    "finagent": "dist/index.js"
   },
   "scripts": {
     "build": "tsup --config tsup.config.ts",
