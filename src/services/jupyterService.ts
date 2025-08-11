@@ -69,10 +69,11 @@ export async function updateVenvPackages(opts?: {
   signal?: AbortSignal;
 }): Promise<void> {
   const pipPath = getVenvPipPath();
+  const pythonPath = getVenvPythonPath();
   const packages = opts?.packages ?? DEFAULT_PACKAGES;
   const onMessage = opts?.onMessage ?? (() => {});
 
-  if (!existsSync(pipPath)) {
+  if (!existsSync(pythonPath)) {
     throw new Error("Python venv is not installed. Restart the app to set it up.");
   }
 
@@ -84,11 +85,20 @@ export async function updateVenvPackages(opts?: {
       onMessage(line);
     }
   };
-  await runCommand(pipPath, ["install", "--upgrade", "pip"], {
+  // Ensure pip exists; some environments may not provision pip in venv by default
+  if (!existsSync(pipPath)) {
+    await runCommand(pythonPath, ["-m", "ensurepip", "--upgrade"], {
+      onMessage: pipOnMessage,
+      signal: opts?.signal,
+    });
+  }
+
+  // Use python -m pip for better reliability on Windows
+  await runCommand(pythonPath, ["-m", "pip", "install", "--upgrade", "pip"], {
     onMessage: pipOnMessage,
     signal: opts?.signal,
   });
-  await runCommand(pipPath, ["install", ...packages], {
+  await runCommand(pythonPath, ["-m", "pip", "install", ...packages], {
     onMessage: pipOnMessage,
     signal: opts?.signal,
   });
