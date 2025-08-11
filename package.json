@@ -13,7 +13,7 @@
     "finagent": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup src/index.tsx --format esm --minify --platform node --target node22 --out-dir dist --clean --no-splitting",
+    "build": "tsup --config tsup.config.ts",
     "dev": "tsx src/index.tsx",
     "start": "node dist/index.js",
     "prepack": "npm run build",
@@ -29,7 +29,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=18"
   },
   "publishConfig": {
     "access": "public"
@@ -42,7 +42,7 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.5",
-    "@types/node": "^22",
+    "@types/node": "^18",
     "@types/react": "^19.1.9",
     "@typescript-eslint/eslint-plugin": "^8.39.0",
     "@typescript-eslint/parser": "^8.39.0",

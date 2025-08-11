@@ -4,21 +4,23 @@ Interactive financial analyst generating Jupyter Notebooks using Claude Code. Br
 
 ## Prerequisites
 
-- Node.js 22+ (get it from https://nodejs.org/en/download)
+- Node.js 18+ (get it from https://nodejs.org/en/download)
 - Python 3.12+
 - Anthropic API key (get it from https://console.anthropic.com/)
 
-## Run 
+## Run
 
 First, install the tool by calling:
+
 ```
 npm i -g finagent
 ```
+
 Then, you can run the tool by calling `finagent`.
 
 ## Development
 
-- `npm install` 
+- `npm install`
 - `npm run dev` for development build
 - `npm run build && npm start` for production build
 
