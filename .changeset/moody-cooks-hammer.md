@@ -2,4 +2,4 @@
 "finagent": patch
 ---
 
-Fix: ensure pip on windows 
+Fix: ensure pip on windows

@@ -19,7 +19,7 @@ function readNvmrcVersion(): string | undefined {
   return undefined;
 }
 
-const nodeTarget = readNvmrcVersion() ?? "node18";
+const nodeTarget = readNvmrcVersion() ?? "node20";
 
 export default defineConfig({
   entry: ["src/index.tsx"],

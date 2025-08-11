@@ -4,7 +4,7 @@ Interactive financial analyst generating Jupyter Notebooks using Claude Code. Br
 
 ## Prerequisites
 
-- Node.js 18+ (get it from https://nodejs.org/en/download)
+- Node.js 20+ (get it from https://nodejs.org/en/download)
 - Python 3.12+
 - Anthropic API key (get it from https://console.anthropic.com/)
 

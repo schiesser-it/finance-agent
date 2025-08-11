@@ -4,7 +4,7 @@ Thank you for considering a contribution! Please follow these guidelines.
 
 ## Development
 
-- Use Node.js 18+.
+- Use Node.js 20+.
 - Install: `npm install`
 - Run: `npm run dev`
 
