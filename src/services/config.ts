@@ -90,3 +90,53 @@ export function setAnthropicApiKeyForSessionAndPersist(apiKey: string): void {
   writeAnthropicApiKeyToConfig(apiKey);
   process.env.ANTHROPIC_API_KEY = apiKey.trim();
 }
+
+// ---- Model selection helpers ----
+
+export interface ModelOption {
+  key: string;
+  label: string;
+  id: string;
+}
+
+export const MODEL_OPTIONS: ModelOption[] = [
+  { key: "opus", label: "Claude Opus 4.1", id: "claude-opus-4-1-20250805" },
+  { key: "sonnet", label: "Claude Sonnet 4", id: "claude-sonnet-4-20250514" },
+];
+
+export const DEFAULT_MODEL_ID = MODEL_OPTIONS[0].id;
+
+export function getModelConfigFilePath(): string {
+  return path.join(getConfigDir(), "model");
+}
+
+export function writeSelectedModelToConfig(modelId: string): void {
+  ensureConfigDir();
+  const filePath = getModelConfigFilePath();
+  writeFileSync(filePath, `${modelId.trim()}\n`, { encoding: "utf-8" });
+}
+
+export function readSelectedModelFromConfig(): string {
+  try {
+    const filePath = getModelConfigFilePath();
+    if (!existsSync(filePath)) {
+      return DEFAULT_MODEL_ID;
+    }
+    const raw = readFileSync(filePath, { encoding: "utf-8" }).trim();
+    const resolved = resolveModelId(raw);
+    return resolved ?? DEFAULT_MODEL_ID;
+  } catch {
+    return DEFAULT_MODEL_ID;
+  }
+}
+
+export function resolveModelId(input: string): string | undefined {
+  const normalized = input.trim().toLowerCase();
+  // Match by key alias
+  const byKey = MODEL_OPTIONS.find((m) => m.key.toLowerCase() === normalized);
+  if (byKey) return byKey.id;
+  // Match by full id
+  const byId = MODEL_OPTIONS.find((m) => m.id.toLowerCase() === normalized);
+  if (byId) return byId.id;
+  return undefined;
+}

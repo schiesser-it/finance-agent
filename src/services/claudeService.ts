@@ -8,6 +8,7 @@ import {
 } from "@anthropic-ai/claude-code";
 
 import { SYSTEM_PROMPT } from "./prompts.js";
+import { readSelectedModelFromConfig } from "./config.js";
 
 export interface ClaudeOptions {
   abortController?: AbortController;
@@ -116,9 +117,12 @@ export class ClaudeService {
     try {
       const abortController = options.abortController || new AbortController();
 
+      const selectedModel = readSelectedModelFromConfig();
+
       for await (const message of query({
         prompt,
         options: {
+          model: selectedModel,
           // maxTurns: 3,
           abortController,
           customSystemPrompt: SYSTEM_PROMPT,

@@ -15,6 +15,7 @@ import {
   openNotebookInBrowser,
 } from "../services/jupyterService.js";
 import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from "../services/prompts.js";
+import { readSelectedModelFromConfig, resolveModelId, writeSelectedModelToConfig } from "../services/config.js";
 
 type RunningCommand = "execute" | "login" | "examples" | null;
 
@@ -34,6 +35,7 @@ export const useCommands = () => {
       "/update     - Update the Jupyter Notebook server",
       "/restart    - Delete the notebook to start fresh",
       "/login      - Enter your Anthropic API key",
+      "/model      - Show or set the active model",
       "/quit       - Exit the application",
     ],
     [],
@@ -129,6 +131,40 @@ export const useCommands = () => {
 
       if (command === "/login") {
         setRunningCommand("login");
+        return;
+      }
+
+      if (command.startsWith("/model")) {
+        const [, arg] = command.split(/\s+/, 2);
+        if (!arg) {
+          setOutput((prev) => [
+            ...prev,
+            "Available models:",
+            "1. Claude Opus 4.1 - claude-opus-4-1-20250805 (alias: opus)",
+            "2. Claude Sonnet 4  - claude-sonnet-4-20250514 (alias: sonnet)",
+            "Use: /model <opus|sonnet|model-id>",
+          ]);
+          return;
+        }
+        try {
+          const resolved = resolveModelId(arg);
+          if (!resolved) {
+            setOutput((prev) => [
+              ...prev,
+              `Unknown model: ${arg}`,
+              "Use one of: opus, sonnet, claude-opus-4-1-20250805, claude-sonnet-4-20250514",
+            ]);
+            return;
+          }
+          writeSelectedModelToConfig(resolved);
+          const current = readSelectedModelFromConfig();
+          setOutput((prev) => [...prev, `✅ Model set to: ${current}`]);
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Failed to set model: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
         return;
       }
 
