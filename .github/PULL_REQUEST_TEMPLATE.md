@@ -4,8 +4,8 @@ Describe the change and why it is needed.
 
 ## Checklist
 
-- [ ] I ran `pnpm build` locally and the build succeeded
-- [ ] I ran `pnpm lint` and fixed issues
+- [ ] I ran `npm run build` locally and the build succeeded
+- [ ] I ran `npm run lint` and fixed issues
 
 ## Contributor License Agreement (CLA)
 
