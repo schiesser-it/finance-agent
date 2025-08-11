@@ -24,7 +24,7 @@ export interface JupyterServerMeta {
   notebookDir: string;
 }
 
-const DEFAULT_PACKAGES: string[] = ["notebook", "pandas", "seaborn", "yfinance", "matplotlib"];
+const DEFAULT_PACKAGES: string[] = ["notebook", "pandas", "seaborn", "yfinance", "matplotlib", "scipy"];
 
 const SERVER_META_FILE = path.join(getConfigDir(), "jupyter.meta.json");
 
