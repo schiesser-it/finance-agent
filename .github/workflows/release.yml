@@ -39,7 +39,7 @@ jobs:
         uses: changesets/action@v1
         with:
           version: npm run version
-          publish: npx changeset publish --access public --provenance
+          publish: npm run changeset publish --access public --provenance
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
