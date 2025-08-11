@@ -1,0 +1,10 @@
+asset_class,ticker,name,region,currency,units,price,market_value,cost_basis,unrealized_pl,weight,notes
+US Equity,VOO,Vanguard S&P 500 ETF,US,USD,85,490.25,41671.25,35000.00,6671.25,41.0%,Core US large-cap exposure
+International Equity,VEA,Vanguard FTSE Developed Markets ETF,Global ex-US,USD,300,53.10,15930.00,15000.00,930.00,15.7%,Developed ex-US equities
+Emerging Markets,VWO,Vanguard FTSE Emerging Markets ETF,EM,USD,240,45.20,10848.00,11000.00,-152.00,10.7%,EM diversification
+US Small-Cap,VB,Vanguard Small-Cap ETF,US,USD,90,229.40,20646.00,18000.00,2646.00,20.3%,US small/mid factor tilt
+Global Bonds,BND,Vanguard Total Bond Market ETF,US,USD,120,72.85,8742.00,9000.00,-258.00,8.6%,Core investment-grade bonds
+Treasuries,IEF,iShares 7-10 Year Treasury Bond ETF,US,USD,40,97.60,3904.00,4000.00,-96.00,3.8%,Rate hedge/ballast
+Gold,GLD,SPDR Gold Shares,Global,USD,12,220.15,2641.80,2400.00,241.80,2.6%,Inflation hedge
+Bitcoin,BTC-USD,Wrapped Bitcoin,Global,USD,0.15,62500.00,9375.00,6000.00,3375.00,9.2%,Digital asset sleeve
+Cash,CASH,USD Cash,US,USD,1,1.00,1000.00,1000.00,0.00,1.0%,Liquidity reserve
