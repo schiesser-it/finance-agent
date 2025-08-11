@@ -1,5 +1,17 @@
 # finagent
 
+## 0.0.4
+
+### Patch Changes
+
+- [`28e8136`](https://github.com/schiesser-it/finance-agent/commit/28e813601d944fd3dc70ef67c71e409a4d119a30) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - fix: new yfinance already calls auto_adjust=True
+
+- [`997012f`](https://github.com/schiesser-it/finance-agent/commit/997012f6f076ecd11d58d70118c0d51f7638cc94) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - add scipy and plotly to jupyter
+
+- [`8a31e84`](https://github.com/schiesser-it/finance-agent/commit/8a31e84437634511b491692c6441f031ffacc9d5) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Add model selector and set sonnet to default
+
+- [`fb81a67`](https://github.com/schiesser-it/finance-agent/commit/fb81a67cb74fbcf76dc401dd26582cb3848ab47f) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Add /fix command to auto-detect errors in Jupyter notebook and fix them
+
 ## 0.0.3
 
 ### Patch Changes
