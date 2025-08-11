@@ -23,20 +23,24 @@ export function getVenvDir(): string {
 }
 
 export function getVenvBinDir(): string {
-  // macOS/Linux layout
-  return path.join(getVenvDir(), "bin");
+  // On Windows, virtualenv places executables in `Scripts`, elsewhere it's `bin`
+  const isWindows = os.platform() === "win32";
+  return path.join(getVenvDir(), isWindows ? "Scripts" : "bin");
 }
 
 export function getVenvPythonPath(): string {
-  return path.join(getVenvBinDir(), "python");
+  const isWindows = os.platform() === "win32";
+  return path.join(getVenvBinDir(), isWindows ? "python.exe" : "python");
 }
 
 export function getVenvPipPath(): string {
-  return path.join(getVenvBinDir(), "pip");
+  const isWindows = os.platform() === "win32";
+  return path.join(getVenvBinDir(), isWindows ? "pip.exe" : "pip");
 }
 
 export function getVenvJupyterPath(): string {
-  return path.join(getVenvBinDir(), "jupyter");
+  const isWindows = os.platform() === "win32";
+  return path.join(getVenvBinDir(), isWindows ? "jupyter.exe" : "jupyter");
 }
 
 export function getLogsDir(): string {

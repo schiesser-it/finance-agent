@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, writeFileSync, openSync, unlinkSync, readFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import { openExternalUrl } from "./browser.js";
@@ -53,7 +54,10 @@ export async function ensureVenvAndPackages(opts?: {
   if (!existsSync(pythonPath)) {
     onMessage(`Setting up Python venv at ${venvDir} ...`);
     const pythonExe = detectPythonExecutable();
-    await runCommand(pythonExe, ["-m", "venv", venvDir], { onMessage, signal: opts?.signal });
+    await runCommand(pythonExe.command, [...pythonExe.argsPrefix, "-m", "venv", venvDir], {
+      onMessage,
+      signal: opts?.signal,
+    });
   }
 
   await updateVenvPackages({ packages, onMessage, signal: opts?.signal });
@@ -132,6 +136,7 @@ export async function startServerInBackground(opts?: {
   const outFd = openSync(outPath, "a");
   const errFd = openSync(errPath, "a");
 
+  const isWindows = os.platform() === "win32";
   const child = spawn(
     jupyterPath,
     [
@@ -145,12 +150,15 @@ export async function startServerInBackground(opts?: {
       "--NotebookApp.password=",
     ],
     {
-      detached: true,
+      detached: !isWindows,
+      windowsHide: isWindows,
       stdio: ["ignore", outFd, errFd],
     },
   );
 
-  child.unref();
+  if (!isWindows) {
+    child.unref();
+  }
   writeFileSync(SERVER_META_FILE, JSON.stringify({ pid: child.pid, port, notebookDir }, null, 2), {
     encoding: "utf8",
   });
@@ -284,15 +292,38 @@ async function runCommand(
   });
 }
 
-function detectPythonExecutable(): string {
-  // Prefer system python3 if available, else node's process.execPath
+function detectPythonExecutable(): { command: string; argsPrefix: string[] } {
+  // On Windows prefer the Python launcher `py -3` if available.
+  // Else try `python3`, then `python`.
+  // As a final fallback, use Node's execPath (rarely useful).
+  const platform = os.platform();
+  if (platform === "win32") {
+    try {
+      const res = spawnSync("py", ["-3", "--version"], { stdio: "ignore" });
+      if (res.status === 0) return { command: "py", argsPrefix: ["-3"] };
+    } catch {
+      // ignore
+    }
+    try {
+      const res = spawnSync("python", ["--version"], { stdio: "ignore" });
+      if (res.status === 0) return { command: "python", argsPrefix: [] };
+    } catch {
+      // ignore
+    }
+  }
   try {
     const res = spawnSync("python3", ["--version"], { stdio: "ignore" });
-    if (res.status === 0) return "python3";
+    if (res.status === 0) return { command: "python3", argsPrefix: [] };
   } catch {
     // ignore
   }
-  return process.execPath;
+  try {
+    const res = spawnSync("python", ["--version"], { stdio: "ignore" });
+    if (res.status === 0) return { command: "python", argsPrefix: [] };
+  } catch {
+    // ignore
+  }
+  return { command: process.execPath, argsPrefix: [] };
 }
 
 async function waitForProcessExit(pid: number, timeoutMs: number): Promise<boolean> {
