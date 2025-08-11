@@ -1,5 +1,13 @@
 # finagent
 
+## 0.0.3
+
+### Patch Changes
+
+- [`427ba4a`](https://github.com/schiesser-it/finance-agent/commit/427ba4a8d58c5e61128841f0f763cf2149b45194) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Fix: ensure pip on windows
+
+- [`4bafb92`](https://github.com/schiesser-it/finance-agent/commit/4bafb9226baf5e8f5074a80360b3b3c4294c0e36) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - chore: use node20 instead node18 to avoid error msg
+
 ## 0.0.2
 
 ### Patch Changes
