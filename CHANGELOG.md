@@ -1,5 +1,11 @@
 # finagent
 
+## 0.0.6
+
+### Patch Changes
+
+- [`a9f835a`](https://github.com/schiesser-it/finance-agent/commit/a9f835a92b23da5066265e24bc9a077086e027e1) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Fix: use current dir for notebook file
+
 ## 0.0.5
 
 ### Patch Changes
