@@ -44,5 +44,5 @@ To update the Jupyter server, use the `/update` command.
 ## License and contributions
 
 - This project is licensed under **AGPL-3.0-only** (see `LICENSE`).
-- By contributing, you must agree to the project's **Contributor License Agreement (CLA)** (`CLA.md`). The CLA grants the maintainer (Marcus Schiesser) the right to use and relicense your contribution, including under commercial terms, while the open-source distribution remains under AGPL.
+- By contributing, you must agree to the project's **Contributor License Agreement (CLA)** (`CLA.md`). The CLA grants the maintainer (Schiesser IT, LLC) the right to use and relicense your contribution, including under commercial terms, while the open-source distribution remains under AGPL.
 - Pull requests must check the CLA box in the PR template; a CI check will block merges if not agreed.

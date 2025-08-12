@@ -8,7 +8,7 @@ Effective date: upon your submission of a contribution to this repository.
    - "Project" means the software in this repository.
 
 2. Copyright license to the Maintainer
-   You hereby grant Marcus Schiesser ("Maintainer"), and those who receive the project from the Maintainer, a perpetual, worldwide, non-exclusive, transferable, sublicensable, royalty-free copyright license to use, reproduce, prepare derivative works of, publicly display, publicly perform, and distribute your Contributions, with the right to relicense your Contributions under any terms, including proprietary/commercial licenses.
+   You hereby grant Schiesser IT, LLC ("Maintainer"), and those who receive the project from the Maintainer, a perpetual, worldwide, non-exclusive, transferable, sublicensable, royalty-free copyright license to use, reproduce, prepare derivative works of, publicly display, publicly perform, and distribute your Contributions, with the right to relicense your Contributions under any terms, including proprietary/commercial licenses.
 
 3. Patent license
    You grant the Maintainer and recipients of the Project a perpetual, worldwide, non-exclusive, transferable, sublicensable, royalty-free patent license to make, have made, use, offer to sell, sell, import, and otherwise transfer your Contribution, where such license applies only to those patent claims licensable by you that are necessarily infringed by your Contribution alone or by combination of your Contribution with the Project to which it was submitted.
