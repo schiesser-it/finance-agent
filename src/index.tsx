@@ -4,8 +4,14 @@ import { render } from "ink";
 import React from "react";
 
 import App from "./App.js";
+import UpdateCheckGate from "./components/UpdateCheckGate.js";
 import { ensureAnthropicApiKeyEnvFromConfig } from "./services/config.js";
 
 ensureAnthropicApiKeyEnvFromConfig();
 
-render(<App />, { exitOnCtrlC: false });
+render(
+  <UpdateCheckGate>
+    <App />
+  </UpdateCheckGate>,
+  { exitOnCtrlC: false },
+);
