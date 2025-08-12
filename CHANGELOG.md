@@ -1,5 +1,13 @@
 # finagent
 
+## 0.0.5
+
+### Patch Changes
+
+- [`a6714ba`](https://github.com/schiesser-it/finance-agent/commit/a6714ba4c49cb3fa8f9210f51dd44f8d53b6ffd9) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - add command completion when typing /
+
+- [`da4cf05`](https://github.com/schiesser-it/finance-agent/commit/da4cf0523d5de2c0b22b07496a6fa5065d088f0d) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - rename /restart to /reset and use /restart to restart the Jupyter server
+
 ## 0.0.4
 
 ### Patch Changes
