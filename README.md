@@ -29,13 +29,14 @@ Then, you can run the tool by calling `finagent`.
 - Type a full-sentence prompt and press Enter (or type `/examples` to see examples)
 - A `analysis.ipynb` file will be created in the current directory and opened in the Jupyter Notebook server provided by the tool.
 - Type a follow-up prompt and press `Enter` to update the `analysis.ipynb` file
-- Use `/restart` to delete the `analysis.ipynb` file and start over
+- Use `/reset` to delete the `analysis.ipynb` file and start over
 - While typing, reference files with `@` prefix. Example: type `@a` to list matches; Up/Down to highlight; Tab to insert the selected `@file` into the prompt.
 - Quit with `Ctrl+C`.
 
 ## Jupyter server
 
 The Jupyter server is installed in a virtual environment and runs in the background on startup and shutdowns automatically on exit.
+You can restart it manually anytime with the `/restart` command.
 The virtual environment is located in the `$HOME/.finance-agent` directory.
 
 To update the Jupyter server, use the `/update` command.

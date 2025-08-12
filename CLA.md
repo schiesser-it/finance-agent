@@ -3,7 +3,6 @@ Contributor License Agreement (Individual)
 Effective date: upon your submission of a contribution to this repository.
 
 1. Definitions
-
    - "You" means the individual making a contribution.
    - "Contribution" means any original work of authorship, including any modifications or additions to existing work, that you submit to this project.
    - "Project" means the software in this repository.

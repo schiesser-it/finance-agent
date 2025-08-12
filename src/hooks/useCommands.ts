@@ -123,7 +123,7 @@ export const useCommands = () => {
         return;
       }
 
-      if (command === "/start") {
+      if (command === "/restart") {
         if (!isVenvReady()) {
           setOutput((prev) => [
             ...prev,
@@ -131,36 +131,23 @@ export const useCommands = () => {
           ]);
           return;
         }
-        if (isServerRunning()) {
-          setOutput((prev) => [...prev, "Server already running."]);
-          return;
-        }
         try {
+          if (isServerRunning()) {
+            await stopServer({ onMessage: (line) => setOutput((prev) => [...prev, line]) });
+          }
           await startServerInBackground({
             onMessage: (line) => setOutput((prev) => [...prev, line]),
           });
         } catch (error) {
           setOutput((prev) => [
             ...prev,
-            `Error starting server: ${error instanceof Error ? error.message : String(error)}`,
+            `Error restarting server: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
         return;
       }
 
-      if (command === "/stop") {
-        try {
-          await stopServer({ onMessage: (line) => setOutput((prev) => [...prev, line]) });
-        } catch (error) {
-          setOutput((prev) => [
-            ...prev,
-            `Error stopping server: ${error instanceof Error ? error.message : String(error)}`,
-          ]);
-        }
-        return;
-      }
-
-      if (command === "/restart") {
+      if (command === "/reset") {
         const notebookPath = path.resolve(process.cwd(), NOTEBOOK_FILE);
         try {
           if (existsSync(notebookPath)) {
