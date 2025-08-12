@@ -150,7 +150,7 @@ export async function startServerInBackground(opts?: {
     return;
   }
 
-  onMessage(`Starting Jupyter Notebook on port ${port} ...`);
+  onMessage(`Starting Jupyter Notebook on port ${port}, serving files from ${notebookDir} ...`);
 
   const outFd = openSync(outPath, "a");
   const errFd = openSync(errPath, "a");
