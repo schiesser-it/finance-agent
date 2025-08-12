@@ -1,11 +1,16 @@
 import { useState, useCallback, useMemo } from "react";
 
+import { COMMANDS } from "../services/commands.js";
+
 export const useInputState = () => {
   const [input, setInput] = useState("");
   const [firstCommand, setFirstCommand] = useState(true);
   const [history, setHistory] = useState<string[]>([]);
-  const [, setHistoryIndex] = useState<number | null>(null);
+  const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const [draftBeforeHistory, setDraftBeforeHistory] = useState<string>("");
+  const [showingCommandCompletions, setShowingCommandCompletions] = useState(false);
+  const [commandMatches, setCommandMatches] = useState<string[]>([]);
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
 
   const clearInput = useCallback(() => {
     setInput("");
@@ -19,12 +24,103 @@ export const useInputState = () => {
   );
 
   const addCharacter = useCallback((char: string) => {
+    setHistoryIndex(null);
     setInput((prev) => prev + char);
   }, []);
 
   const removeLastCharacter = useCallback(() => {
+    setHistoryIndex(null);
     setInput((prev) => prev.slice(0, -1));
   }, []);
+
+  const pushHistory = useCallback((entry: string) => {
+    const trimmed = entry.trim();
+    if (trimmed.length === 0) return;
+    setHistory((prev) => {
+      if (prev.length > 0 && prev[prev.length - 1] === trimmed) return prev;
+      return [...prev, trimmed];
+    });
+    setHistoryIndex(null);
+    setDraftBeforeHistory("");
+  }, []);
+
+  const updateCommandMatches = useCallback(
+    (text: string) => {
+      // When navigating command history, do not show command completions
+      if (historyIndex !== null) {
+        setShowingCommandCompletions(false);
+        setCommandMatches([]);
+        return;
+      }
+      if (!text.startsWith("/")) {
+        setShowingCommandCompletions(false);
+        setCommandMatches([]);
+        setSelectedCommandIndex(0);
+        return;
+      }
+      // If user started typing arguments, don't show command matches
+      if (text.includes(" ")) {
+        setShowingCommandCompletions(false);
+        setCommandMatches([]);
+        setSelectedCommandIndex(0);
+        return;
+      }
+      const [cmdPart] = text.split(/\s+/, 1);
+      const matches = COMMANDS.filter((c) => c.name.startsWith(cmdPart)).map((c) => c.name);
+      setCommandMatches(matches);
+      setShowingCommandCompletions(matches.length > 0 && cmdPart.length > 0);
+      setSelectedCommandIndex(0);
+    },
+    [historyIndex],
+  );
+
+  const selectPreviousCommand = useCallback(() => {
+    setSelectedCommandIndex((prev) => Math.max(0, prev - 1));
+  }, []);
+
+  const selectNextCommand = useCallback(() => {
+    setSelectedCommandIndex((prev) => Math.min(commandMatches.length - 1, prev + 1));
+  }, [commandMatches.length]);
+
+  const applySelectedCommand = useCallback(() => {
+    if (commandMatches.length === 0) return;
+    const current = commandMatches[selectedCommandIndex];
+    const completed = buildCompletedCommand(current, input, true);
+    setInput(completed);
+    setShowingCommandCompletions(false);
+  }, [commandMatches, selectedCommandIndex, input]);
+
+  const buildCompletedCommand = (
+    base: string,
+    currentInput: string,
+    withTrailingSpace: boolean,
+  ): string => {
+    const parts = currentInput.split(/\s+/, 2);
+    const rest = parts.length > 1 ? ` ${parts[1]}` : "";
+    if (withTrailingSpace) {
+      return `${base}${rest || " "}`;
+    }
+    return `${base}${rest}`;
+  };
+
+  const getSelectedCommandEffectiveInput = useCallback((): string | null => {
+    if (commandMatches.length === 0) return null;
+    const base = commandMatches[selectedCommandIndex] ?? "";
+    return buildCompletedCommand(base, input, false);
+  }, [commandMatches, selectedCommandIndex, input]);
+
+  const commitSelectedCommand = useCallback((): string | null => {
+    const effectiveInput = getSelectedCommandEffectiveInput();
+    if (!effectiveInput) return null;
+    setShowingCommandCompletions(false);
+    // push to history and clear input using existing helpers
+    pushHistory(effectiveInput);
+    setHistoryIndex(null);
+    setDraftBeforeHistory("");
+    setInput("");
+    setFirstCommand(false);
+    return effectiveInput;
+  }, [getSelectedCommandEffectiveInput, pushHistory]);
 
   const insertFileReference = useCallback((filePath: string) => {
     setInput((prevInput) => {
@@ -44,17 +140,6 @@ export const useInputState = () => {
     });
   }, []);
 
-  const pushHistory = useCallback((entry: string) => {
-    const trimmed = entry.trim();
-    if (trimmed.length === 0) return;
-    setHistory((prev) => {
-      if (prev.length > 0 && prev[prev.length - 1] === trimmed) return prev;
-      return [...prev, trimmed];
-    });
-    setHistoryIndex(null);
-    setDraftBeforeHistory("");
-  }, []);
-
   const historyPrev = useCallback(() => {
     setHistoryIndex((currentIndex) => {
       if (history.length === 0) return null;
@@ -62,11 +147,13 @@ export const useInputState = () => {
         setDraftBeforeHistory((prevDraft) => (prevDraft === "" ? input : prevDraft));
         const newIndex = history.length - 1;
         setInput(history[newIndex] ?? "");
+        setShowingCommandCompletions(false);
         return newIndex;
       }
       if (currentIndex > 0) {
         const newIndex = currentIndex - 1;
         setInput(history[newIndex] ?? "");
+        setShowingCommandCompletions(false);
         return newIndex;
       }
       // Already at oldest
@@ -80,10 +167,12 @@ export const useInputState = () => {
       if (currentIndex < history.length - 1) {
         const newIndex = currentIndex + 1;
         setInput(history[newIndex] ?? "");
+        setShowingCommandCompletions(false);
         return newIndex;
       }
       // Move past the newest back to draft state
       setInput(draftBeforeHistory);
+      setShowingCommandCompletions(false);
       return null;
     });
   }, [history, draftBeforeHistory]);
@@ -96,9 +185,20 @@ export const useInputState = () => {
     showExamplesHint,
     addCharacter,
     removeLastCharacter,
+    updateCommandMatches,
     insertFileReference,
     pushHistory,
     historyPrev,
     historyNext,
+    historyIndex,
+    showingCommandCompletions,
+    setShowingCommandCompletions,
+    commandMatches,
+    selectedCommandIndex,
+    selectPreviousCommand,
+    selectNextCommand,
+    applySelectedCommand,
+    getSelectedCommandEffectiveInput,
+    commitSelectedCommand,
   };
 };

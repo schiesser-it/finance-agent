@@ -2,6 +2,7 @@ import { Box, useInput, useApp, Text } from "ink";
 import type { Key } from "ink";
 import React, { useCallback, useEffect } from "react";
 
+import CommandCompletions from "./components/CommandCompletions.js";
 import ExamplesList from "./components/ExamplesList.js";
 import FileSearch from "./components/FileSearch.js";
 import Header from "./components/Header.js";
@@ -47,15 +48,25 @@ const MainUI: React.FC = () => {
     showExamplesHint,
     addCharacter,
     removeLastCharacter,
+    updateCommandMatches,
     insertFileReference,
     pushHistory,
     historyPrev,
     historyNext,
+    showingCommandCompletions,
+    setShowingCommandCompletions,
+    commandMatches,
+    selectedCommandIndex,
+    selectPreviousCommand,
+    selectNextCommand,
+    applySelectedCommand,
+    commitSelectedCommand,
   } = useInputState();
 
   useEffect(() => {
     updateFileMatches(input);
-  }, [input, updateFileMatches]);
+    updateCommandMatches(input);
+  }, [input, updateFileMatches, updateCommandMatches]);
 
   const handleFileSelection = () => {
     if (fileMatches.length > 0) {
@@ -113,6 +124,32 @@ const MainUI: React.FC = () => {
       }
       if (key.escape) {
         clearFileSearch();
+        return;
+      }
+    }
+
+    if (showingCommandCompletions) {
+      if (key.escape) {
+        setShowingCommandCompletions(false);
+        return;
+      }
+      if (key.upArrow) {
+        selectPreviousCommand();
+        return;
+      }
+      if (key.downArrow) {
+        selectNextCommand();
+        return;
+      }
+      if (key.tab) {
+        applySelectedCommand();
+        return;
+      }
+      if (key.return) {
+        const committed = commitSelectedCommand();
+        if (committed) {
+          handleCommand(committed);
+        }
         return;
       }
     }
@@ -183,6 +220,11 @@ const MainUI: React.FC = () => {
         input={input}
         isExecuting={runningCommand !== null}
         example={showExamplesHint ? "/examples" : undefined}
+      />
+      <CommandCompletions
+        commandMatches={commandMatches}
+        selectedIndex={selectedCommandIndex}
+        isVisible={showingCommandCompletions}
       />
       <LoginPrompt
         visible={runningCommand === "login"}

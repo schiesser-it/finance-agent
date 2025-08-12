@@ -1,0 +1,22 @@
+export type CommandSpec = {
+  name: string;
+  description: string;
+  takesArgument?: boolean;
+};
+
+export const COMMANDS: CommandSpec[] = [
+  { name: "/help", description: "Show available commands" },
+  { name: "/examples", description: "Show example prompts" },
+  { name: "/start", description: "Start Jupyter Notebook server" },
+  { name: "/stop", description: "Stop Jupyter Notebook server" },
+  { name: "/update", description: "Update the Jupyter Notebook server" },
+  { name: "/restart", description: "Delete the notebook to start fresh" },
+  { name: "/fix", description: "Analyze last error in notebook and propose a fix" },
+  { name: "/login", description: "Enter your Anthropic API key" },
+  {
+    name: "/model",
+    description: "Show or set the active model",
+    takesArgument: true,
+  },
+  { name: "/quit", description: "Exit the application" },
+];

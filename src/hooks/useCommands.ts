@@ -5,6 +5,7 @@ import { useApp } from "ink";
 import { useState, useCallback, useRef, useMemo } from "react";
 
 import { ClaudeService } from "../services/claudeService.js";
+import { COMMANDS } from "../services/commands.js";
 import {
   readSelectedModelFromConfig,
   resolveModelId,
@@ -30,21 +31,10 @@ export const useCommands = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const { exit } = useApp();
 
-  const availableCommands = useMemo(
-    () => [
-      "/help       - Show available commands",
-      "/examples   - Show example prompts",
-      "/start      - Start Jupyter Notebook server",
-      "/stop       - Stop Jupyter Notebook server",
-      "/update     - Update the Jupyter Notebook server",
-      "/restart    - Delete the notebook to start fresh",
-      "/fix        - Analyze last error in notebook and propose a fix",
-      "/login      - Enter your Anthropic API key",
-      "/model      - Show or set the active model",
-      "/quit       - Exit the application",
-    ],
-    [],
-  );
+  const availableCommands = useMemo(() => {
+    const padWidth = Math.max(...COMMANDS.map((c) => c.name.length), 10);
+    return COMMANDS.map((c) => `${c.name.padEnd(padWidth)} - ${c.description}`);
+  }, []);
 
   const executePrompt = useCallback(
     (prompt: string, options?: { includeGuidance?: boolean }) => {
@@ -261,7 +251,7 @@ export const useCommands = () => {
             `Current model: ${current}`,
             "Available models:",
             "1. Claude Opus 4.1 - claude-opus-4-1-20250805 (alias: opus)",
-            "2. Claude Sonnet 4  - claude-sonnet-4-20250514 (alias: sonnet)",
+            "2. Claude Sonnet 4 - claude-sonnet-4-20250514 (alias: sonnet)",
             "Use: /model <opus|sonnet|model-id>",
           ]);
           return;
