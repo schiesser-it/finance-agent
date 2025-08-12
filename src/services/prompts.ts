@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
+import { getInvocationCwd } from "./config.js";
+
 export const NOTEBOOK_FILE = "analysis.ipynb";
 const ADD_GRAPH_PROMPT =
   "Make sure to tell a story and add supporting visual pleasing graphs using plotly.";
@@ -12,7 +14,7 @@ export const buildPromptWithNotebookPrefix = (
   options?: { includeGuidance?: boolean },
 ): string => {
   const includeGuidance = options?.includeGuidance !== false;
-  const notebookPath = path.resolve(process.cwd(), NOTEBOOK_FILE);
+  const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
   const guidance = includeGuidance ? ` ${ADD_GRAPH_PROMPT} ${YFINANCE_PROMPT}` : "";
   const prefix = existsSync(notebookPath)
     ? `update the jupyter notebook named ${NOTEBOOK_FILE}.${guidance}`

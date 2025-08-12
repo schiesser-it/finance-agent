@@ -51,6 +51,18 @@ export function getLogsDir(): string {
   return dir;
 }
 
+// ---- Working directory resolution ----
+// Some environments (global installs, certain shells) can cause process.cwd()
+// to point at the package install directory instead of the user's current dir.
+// Prefer POSIX PWD, then process.cwd().
+export function getInvocationCwd(): string {
+  const pwd = process.env.PWD?.trim();
+  if (pwd && pwd.length > 0) {
+    return pwd;
+  }
+  return process.cwd();
+}
+
 // ---- Anthropic API key helpers ----
 
 export function getAnthropicApiKeyFilePath(): string {

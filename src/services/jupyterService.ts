@@ -12,6 +12,7 @@ import {
   getVenvJupyterPath,
   getVenvPipPath,
   getVenvPythonPath,
+  getInvocationCwd,
 } from "./config.js";
 
 export interface JupyterPackagesConfig {
@@ -134,7 +135,7 @@ export async function startServerInBackground(opts?: {
   const jupyterPath = getVenvJupyterPath();
   const envPort = Number(process.env.JUPYTER_PORT || "");
   const port = opts?.port ?? (Number.isFinite(envPort) && envPort > 0 ? envPort : 8888);
-  const notebookDir = opts?.notebookDir ?? process.cwd();
+  const notebookDir = opts?.notebookDir ?? getInvocationCwd();
   const logsDir = getLogsDir();
   const outPath = path.join(logsDir, "jupyter.out.log");
   const errPath = path.join(logsDir, "jupyter.err.log");

@@ -10,6 +10,7 @@ import {
   readSelectedModelFromConfig,
   resolveModelId,
   writeSelectedModelToConfig,
+  getInvocationCwd,
 } from "../services/config.js";
 import {
   isVenvReady,
@@ -148,7 +149,7 @@ export const useCommands = () => {
       }
 
       if (command === "/reset") {
-        const notebookPath = path.resolve(process.cwd(), NOTEBOOK_FILE);
+        const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
         try {
           if (existsSync(notebookPath)) {
             unlinkSync(notebookPath);
@@ -169,7 +170,7 @@ export const useCommands = () => {
       }
 
       if (command === "/fix") {
-        const notebookPath = path.resolve(process.cwd(), NOTEBOOK_FILE);
+        const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
         try {
           if (!existsSync(notebookPath)) {
             setOutput((prev) => [
