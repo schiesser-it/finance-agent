@@ -38,8 +38,42 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
+          title: Release
           version: npm run version
           publish: npm run changeset publish --access public --provenance
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Rename release PR to include version
+        if: ${{ steps.changesets.outputs.pullRequestNumber != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = Number('${{ steps.changesets.outputs.pullRequestNumber }}');
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            const ref = pr.head.sha;
+            const { data: file } = await github.rest.repos.getContent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              path: 'package.json',
+              ref,
+            });
+            if (!('content' in file)) {
+              core.setFailed('package.json not found in PR head');
+              return;
+            }
+            const contents = Buffer.from(file.content, 'base64').toString('utf8');
+            const pkg = JSON.parse(contents);
+            const newTitle = `Release ${pkg.version}`;
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              title: newTitle,
+            });
