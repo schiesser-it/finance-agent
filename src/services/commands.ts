@@ -17,5 +17,10 @@ export const COMMANDS: CommandSpec[] = [
     description: "Show or set the active model",
     takesArgument: true,
   },
+  {
+    name: "/thinking",
+    description: "Show or set thinking mode (none|normal|hard|harder)",
+    takesArgument: true,
+  },
   { name: "/quit", description: "Exit the application" },
 ];

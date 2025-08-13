@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import { getInvocationCwd } from "./config.js";
+import { getInvocationCwd, readThinkingModeFromConfig } from "./config.js";
 
 export const NOTEBOOK_FILE = "analysis.ipynb";
 const ADD_GRAPH_PROMPT =
@@ -19,7 +19,12 @@ export const buildPromptWithNotebookPrefix = (
   const prefix = existsSync(notebookPath)
     ? `update the jupyter notebook named ${NOTEBOOK_FILE}.${guidance}`
     : `create a jupyter notebook named ${NOTEBOOK_FILE}.${guidance}`;
-  return `${prefix} ${userPrompt}`;
+  const thinking = readThinkingModeFromConfig();
+  let postfix = "";
+  if (thinking === "normal") postfix = " think";
+  if (thinking === "hard") postfix = " think hard";
+  if (thinking === "harder") postfix = " think harder";
+  return `${prefix} ${userPrompt}${postfix}`;
 };
 
 export const SYSTEM_PROMPT = `You are a senior equity research analyst at Goldman Sachs with 15 years experience and you are an expert in creating Jupyter notebooks using Python.`;

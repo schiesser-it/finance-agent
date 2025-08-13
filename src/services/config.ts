@@ -152,3 +152,35 @@ export function resolveModelId(input: string): string | undefined {
   if (byId) return byId.id;
   return undefined;
 }
+
+// ---- Thinking mode helpers ----
+
+export type ThinkingMode = "none" | "normal" | "hard" | "harder";
+
+export const DEFAULT_THINKING_MODE: ThinkingMode = "none";
+
+export function getThinkingConfigFilePath(): string {
+  return path.join(getConfigDir(), "thinking");
+}
+
+export function writeThinkingModeToConfig(mode: ThinkingMode): void {
+  ensureConfigDir();
+  const filePath = getThinkingConfigFilePath();
+  writeFileSync(filePath, `${mode}\n`, { encoding: "utf-8" });
+}
+
+export function readThinkingModeFromConfig(): ThinkingMode {
+  try {
+    const filePath = getThinkingConfigFilePath();
+    if (!existsSync(filePath)) {
+      return DEFAULT_THINKING_MODE;
+    }
+    const raw = readFileSync(filePath, { encoding: "utf-8" }).trim().toLowerCase();
+    if (raw === "none" || raw === "normal" || raw === "hard" || raw === "harder") {
+      return raw as ThinkingMode;
+    }
+    return DEFAULT_THINKING_MODE;
+  } catch {
+    return DEFAULT_THINKING_MODE;
+  }
+}

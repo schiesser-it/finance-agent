@@ -11,6 +11,8 @@ import {
   resolveModelId,
   writeSelectedModelToConfig,
   getInvocationCwd,
+  readThinkingModeFromConfig,
+  writeThinkingModeToConfig,
 } from "../services/config.js";
 import {
   isVenvReady,
@@ -261,6 +263,44 @@ export const useCommands = () => {
           setOutput((prev) => [
             ...prev,
             `Failed to set model: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
+        return;
+      }
+
+      if (command.startsWith("/thinking")) {
+        const [, arg] = command.split(/\s+/, 2);
+        if (!arg) {
+          const current = readThinkingModeFromConfig();
+          setOutput((prev) => [
+            ...prev,
+            `Current thinking mode: ${current}`,
+            "Available modes:",
+            "1. none",
+            "2. normal",
+            "3. hard",
+            "4. harder",
+            "Use: /thinking <none|normal|hard|harder>",
+          ]);
+          return;
+        }
+        const normalized = arg.trim().toLowerCase();
+        if (!["none", "normal", "hard", "harder"].includes(normalized)) {
+          setOutput((prev) => [
+            ...prev,
+            `Unknown thinking mode: ${arg}`,
+            "Use one of: none, normal, hard, harder",
+          ]);
+          return;
+        }
+        try {
+          writeThinkingModeToConfig(normalized as "none" | "normal" | "hard" | "harder");
+          const current = readThinkingModeFromConfig();
+          setOutput((prev) => [...prev, `✅ Thinking mode set to: ${current}`]);
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Failed to set thinking mode: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
         return;
