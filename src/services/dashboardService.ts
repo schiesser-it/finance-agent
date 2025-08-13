@@ -3,16 +3,19 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { openExternalUrl } from "./browser.js";
 import { getConfigDir, getVenvDir, ensureConfigDir, getInvocationCwd } from "./config.js";
+import { pickAvailablePort, waitForPortOpen } from "./network.js";
 import { ensureUvInstalled, waitForProcessExit, isPidAlive } from "./venv";
 
 const DASHBOARD_META_FILE = path.join(getConfigDir(), "dashboard.meta.json");
 
 export async function runDashboard(
   dashboardFile: string,
-  opts?: { cwd?: string; onMessage?: (line: string) => void },
+  opts?: { cwd?: string; onMessage?: (line: string) => void; openBrowser?: boolean; port?: number },
 ): Promise<void> {
   const onMessage = opts?.onMessage ?? (() => {});
+  const shouldOpenBrowser = opts?.openBrowser !== false;
   await ensureUvInstalled({ onMessage });
   const venvDir = getVenvDir();
   const isWindows = os.platform() === "win32";
@@ -32,6 +35,7 @@ export async function runDashboard(
     }
 
     const cwd = opts?.cwd ?? getInvocationCwd();
+    const port = await pickAvailablePort(opts?.port ?? 8501);
     const child = spawn(
       "uv",
       [
@@ -41,6 +45,8 @@ export async function runDashboard(
         "streamlit",
         "run",
         dashboardFile,
+        `--server.port=${port}`,
+        "--server.address=localhost",
         "--server.headless=true",
         "--browser.gatherUsageStats=false",
       ],
@@ -66,8 +72,10 @@ export async function runDashboard(
         JSON.stringify(
           {
             pid: child.pid,
-            command: `uv run --python ${venvDir} streamlit run ${dashboardFile}`,
+            command: `uv run --python ${venvDir} streamlit run ${dashboardFile} --server.port=${port}`,
             cwd,
+            port,
+            url: `http://localhost:${port}`,
           },
           null,
           2,
@@ -82,6 +90,16 @@ export async function runDashboard(
       );
     }
     onMessage(`Launching dashboard: streamlit run ${dashboardFile} (PID: ${child.pid})`);
+    if (shouldOpenBrowser) {
+      try {
+        await waitForPortOpen(port, 15000);
+        const url = `http://localhost:${port}`;
+        onMessage(`Opening dashboard in browser: ${url}`);
+        await openExternalUrl(url);
+      } catch (e) {
+        onMessage(`Failed to open browser: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
     child.on("exit", (code, signal) => {
       onMessage(
         `Dashboard process exited${
@@ -98,6 +116,7 @@ export async function runDashboard(
     onMessage(`Failed to launch dashboard: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
+
 export function isDashboardRunning(): boolean {
   try {
     if (!existsSync(DASHBOARD_META_FILE)) return false;
