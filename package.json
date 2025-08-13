@@ -1,6 +1,6 @@
 {
   "name": "finagent",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Interactive coding assistant for Jupyter Notebooks for Finance",
   "type": "module",
   "main": "dist/index.js",
