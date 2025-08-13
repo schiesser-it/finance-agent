@@ -1,0 +1,3 @@
+- Use npm (not pnpm) for all package management tasks (install, scripts, updates).
+- Prefer commands in the form `npm run <script>`.
+- Lint the codebase with `npm run lint`.

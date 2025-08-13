@@ -4,6 +4,7 @@ import React, { useCallback, useEffect } from "react";
 
 import CommandCompletions from "./components/CommandCompletions.js";
 import ExamplesList from "./components/ExamplesList.js";
+import ExecutingPrompt from "./components/ExecutingPrompt.js";
 import FileSearch from "./components/FileSearch.js";
 import Header from "./components/Header.js";
 import InputPrompt from "./components/InputPrompt.js";
@@ -216,11 +217,10 @@ const MainUI: React.FC = () => {
         </Text>
       </Box>
       <OutputDisplay output={output} />
-      <InputPrompt
-        input={input}
-        isExecuting={runningCommand !== null}
-        example={showExamplesHint ? "/examples" : undefined}
-      />
+      {runningCommand === null && (
+        <InputPrompt input={input} example={showExamplesHint ? "/examples" : undefined} />
+      )}
+      {runningCommand === "execute" && <ExecutingPrompt />}
       <CommandCompletions
         commandMatches={commandMatches}
         selectedIndex={selectedCommandIndex}
