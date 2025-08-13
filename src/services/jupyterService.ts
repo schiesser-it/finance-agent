@@ -63,10 +63,7 @@ export async function ensureUvInstalled(opts?: {
   try {
     if (platform === "win32") {
       // For Windows, try to use the PowerShell installer
-      await runCommand("powershell", [
-        "-c",
-        "irm https://astral.sh/uv/install.ps1 | iex"
-      ], {
+      await runCommand("powershell", ["-c", "irm https://astral.sh/uv/install.ps1 | iex"], {
         onMessage,
         signal: opts?.signal,
       });
@@ -74,7 +71,7 @@ export async function ensureUvInstalled(opts?: {
       // Try curl first, fallback to wget if curl is not available
       let installCommand: string;
       let installArgs: string[];
-      
+
       try {
         const curlCheck = spawnSync("curl", ["--version"], { stdio: "ignore" });
         if (curlCheck.status === 0) {
@@ -96,7 +93,7 @@ export async function ensureUvInstalled(opts?: {
           throw new Error("Cannot install uv: neither curl nor wget is available");
         }
       }
-      
+
       await runCommand(installCommand, installArgs, {
         onMessage,
         signal: opts?.signal,
@@ -105,14 +102,18 @@ export async function ensureUvInstalled(opts?: {
 
     // Verify installation
     if (!isUvAvailable()) {
-      throw new Error("uv installation completed but uv is still not available. You may need to restart your terminal or add uv to your PATH.");
+      throw new Error(
+        "uv installation completed but uv is still not available. You may need to restart your terminal or add uv to your PATH.",
+      );
     }
-    
+
     onMessage("✅ uv installed successfully!");
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     onMessage(`❌ Failed to install uv: ${errorMsg}`);
-    onMessage("You can install uv manually by visiting: https://docs.astral.sh/uv/getting-started/installation/");
+    onMessage(
+      "You can install uv manually by visiting: https://docs.astral.sh/uv/getting-started/installation/",
+    );
     throw new Error(`uv installation failed: ${errorMsg}`);
   }
 }
@@ -125,13 +126,13 @@ export function isVenvReady(): boolean {
 
   try {
     // Check if uv can find python in the venv and if jupyter is installed
-    const pythonCheck = spawnSync("uv", ["run", "--python", venvDir, "python", "--version"], { 
-      stdio: "ignore" 
+    const pythonCheck = spawnSync("uv", ["run", "--python", venvDir, "python", "--version"], {
+      stdio: "ignore",
     });
-    const jupyterCheck = spawnSync("uv", ["run", "--python", venvDir, "jupyter", "--version"], { 
-      stdio: "ignore" 
+    const jupyterCheck = spawnSync("uv", ["run", "--python", venvDir, "jupyter", "--version"], {
+      stdio: "ignore",
     });
-    
+
     return pythonCheck.status === 0 && jupyterCheck.status === 0;
   } catch {
     return false;
@@ -222,8 +223,8 @@ export async function startServerInBackground(opts?: {
 
   // Check if jupyter is available in the venv
   try {
-    const jupyterCheck = spawnSync("uv", ["run", "--python", venvDir, "jupyter", "--version"], { 
-      stdio: "ignore" 
+    const jupyterCheck = spawnSync("uv", ["run", "--python", venvDir, "jupyter", "--version"], {
+      stdio: "ignore",
     });
     if (jupyterCheck.status !== 0) {
       throw new Error("Jupyter is not installed in the virtual environment.");
@@ -248,7 +249,8 @@ export async function startServerInBackground(opts?: {
     "uv",
     [
       "run",
-      "--python", venvDir,
+      "--python",
+      venvDir,
       "jupyter",
       "notebook",
       // Keep browser disabled here; we'll explicitly open URLs when needed
@@ -366,15 +368,15 @@ function cleanupMetaFile(): void {
 export async function runInVenv(
   command: string,
   args: string[] = [],
-  opts?: { 
-    cwd?: string; 
-    onMessage?: (line: string) => void; 
+  opts?: {
+    cwd?: string;
+    onMessage?: (line: string) => void;
     signal?: AbortSignal;
-  }
+  },
 ): Promise<void> {
   const venvDir = getVenvDir();
   await ensureUvInstalled({ onMessage: opts?.onMessage, signal: opts?.signal });
-  
+
   await runCommand("uv", ["run", "--python", venvDir, command, ...args], opts);
 }
 
