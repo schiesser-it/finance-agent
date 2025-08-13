@@ -103,7 +103,19 @@ const VenvSetupGate: React.FC<VenvSetupGateProps> = ({ onReady, children }) => {
     );
   }
 
-  // checking or prompt
+  // checking phase
+  if (phase === "checking") {
+    return (
+      <>
+        <Header />
+        <Box flexDirection="column">
+          <Text>Checking your environment...</Text>
+        </Box>
+      </>
+    );
+  }
+
+  // prompt phase
   return (
     <>
       <Header />

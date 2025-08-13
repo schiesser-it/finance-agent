@@ -9,9 +9,6 @@ import {
   getConfigDir,
   getLogsDir,
   getVenvDir,
-  getVenvJupyterPath,
-  getVenvPipPath,
-  getVenvPythonPath,
   getInvocationCwd,
 } from "./config.js";
 
@@ -41,12 +38,104 @@ export function getDefaultPackages(): string[] {
   return [...DEFAULT_PACKAGES];
 }
 
+function isUvAvailable(): boolean {
+  try {
+    const res = spawnSync("uv", ["--version"], { stdio: "ignore" });
+    return res.status === 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function ensureUvInstalled(opts?: {
+  onMessage?: (line: string) => void;
+  signal?: AbortSignal;
+}): Promise<void> {
+  if (isUvAvailable()) {
+    return; // Already installed
+  }
+
+  const onMessage = opts?.onMessage ?? (() => {});
+  const platform = os.platform();
+
+  onMessage("uv not found. Installing uv for faster Python environment management...");
+
+  try {
+    if (platform === "win32") {
+      // For Windows, try to use the PowerShell installer
+      await runCommand("powershell", [
+        "-c",
+        "irm https://astral.sh/uv/install.ps1 | iex"
+      ], {
+        onMessage,
+        signal: opts?.signal,
+      });
+    } else {
+      // Try curl first, fallback to wget if curl is not available
+      let installCommand: string;
+      let installArgs: string[];
+      
+      try {
+        const curlCheck = spawnSync("curl", ["--version"], { stdio: "ignore" });
+        if (curlCheck.status === 0) {
+          installCommand = "sh";
+          installArgs = ["-c", "curl -LsSf https://astral.sh/uv/install.sh | sh"];
+        } else {
+          throw new Error("curl not available");
+        }
+      } catch {
+        try {
+          const wgetCheck = spawnSync("wget", ["--version"], { stdio: "ignore" });
+          if (wgetCheck.status === 0) {
+            installCommand = "sh";
+            installArgs = ["-c", "wget -qO- https://astral.sh/uv/install.sh | sh"];
+          } else {
+            throw new Error("Neither curl nor wget available");
+          }
+        } catch {
+          throw new Error("Cannot install uv: neither curl nor wget is available");
+        }
+      }
+      
+      await runCommand(installCommand, installArgs, {
+        onMessage,
+        signal: opts?.signal,
+      });
+    }
+
+    // Verify installation
+    if (!isUvAvailable()) {
+      throw new Error("uv installation completed but uv is still not available. You may need to restart your terminal or add uv to your PATH.");
+    }
+    
+    onMessage("✅ uv installed successfully!");
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    onMessage(`❌ Failed to install uv: ${errorMsg}`);
+    onMessage("You can install uv manually by visiting: https://docs.astral.sh/uv/getting-started/installation/");
+    throw new Error(`uv installation failed: ${errorMsg}`);
+  }
+}
+
 export function isVenvReady(): boolean {
-  const pythonPath = getVenvPythonPath();
-  const pipPath = getVenvPipPath();
-  const jupyterPath = getVenvJupyterPath();
-  // Consider the environment ready only if the venv exists AND jupyter is installed.
-  return existsSync(pythonPath) && existsSync(pipPath) && existsSync(jupyterPath);
+  const venvDir = getVenvDir();
+  if (!existsSync(venvDir)) {
+    return false;
+  }
+
+  try {
+    // Check if uv can find python in the venv and if jupyter is installed
+    const pythonCheck = spawnSync("uv", ["run", "--python", venvDir, "python", "--version"], { 
+      stdio: "ignore" 
+    });
+    const jupyterCheck = spawnSync("uv", ["run", "--python", venvDir, "jupyter", "--version"], { 
+      stdio: "ignore" 
+    });
+    
+    return pythonCheck.status === 0 && jupyterCheck.status === 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function ensureVenvAndPackages(opts?: {
@@ -56,14 +145,15 @@ export async function ensureVenvAndPackages(opts?: {
 }): Promise<void> {
   ensureConfigDir();
   const venvDir = getVenvDir();
-  const pythonPath = getVenvPythonPath();
   const packages = opts?.packages ?? DEFAULT_PACKAGES;
   const onMessage = opts?.onMessage ?? (() => {});
 
-  if (!existsSync(pythonPath)) {
-    onMessage(`Setting up Python venv at ${venvDir} ...`);
-    const pythonExe = detectPythonExecutable();
-    await runCommand(pythonExe.command, [...pythonExe.argsPrefix, "-m", "venv", venvDir], {
+  // Ensure uv is installed first
+  await ensureUvInstalled({ onMessage: opts?.onMessage, signal: opts?.signal });
+
+  if (!existsSync(venvDir)) {
+    onMessage(`Setting up Python venv at ${venvDir} using uv...`);
+    await runCommand("uv", ["venv", venvDir], {
       onMessage,
       signal: opts?.signal,
     });
@@ -77,16 +167,18 @@ export async function updateVenvPackages(opts?: {
   onMessage?: (line: string) => void;
   signal?: AbortSignal;
 }): Promise<void> {
-  const pipPath = getVenvPipPath();
-  const pythonPath = getVenvPythonPath();
+  const venvDir = getVenvDir();
   const packages = opts?.packages ?? DEFAULT_PACKAGES;
   const onMessage = opts?.onMessage ?? (() => {});
 
-  if (!existsSync(pythonPath)) {
+  if (!existsSync(venvDir)) {
     throw new Error("Python venv is not installed. Restart the app to set it up.");
   }
 
-  onMessage("Updating Python packages ...");
+  // Ensure uv is available
+  await ensureUvInstalled({ onMessage: opts?.onMessage, signal: opts?.signal });
+
+  onMessage("Updating Python packages using uv...");
   const pipOnMessage = (chunk: string) => {
     for (const line of chunk.split(/\r?\n/)) {
       if (!line) continue;
@@ -94,20 +186,8 @@ export async function updateVenvPackages(opts?: {
       onMessage(line);
     }
   };
-  // Ensure pip exists; some environments may not provision pip in venv by default
-  if (!existsSync(pipPath)) {
-    await runCommand(pythonPath, ["-m", "ensurepip", "--upgrade"], {
-      onMessage: pipOnMessage,
-      signal: opts?.signal,
-    });
-  }
 
-  // Use python -m pip for better reliability on Windows
-  await runCommand(pythonPath, ["-m", "pip", "install", "--upgrade", "pip"], {
-    onMessage: pipOnMessage,
-    signal: opts?.signal,
-  });
-  await runCommand(pythonPath, ["-m", "pip", "install", ...packages], {
+  await runCommand("uv", ["pip", "install", "--python", venvDir, ...packages], {
     onMessage: pipOnMessage,
     signal: opts?.signal,
   });
@@ -132,7 +212,7 @@ export async function startServerInBackground(opts?: {
 }): Promise<void> {
   const onMessage = opts?.onMessage ?? (() => {});
   ensureConfigDir();
-  const jupyterPath = getVenvJupyterPath();
+  const venvDir = getVenvDir();
   const envPort = Number(process.env.JUPYTER_PORT || "");
   const port = opts?.port ?? (Number.isFinite(envPort) && envPort > 0 ? envPort : 8888);
   const notebookDir = opts?.notebookDir ?? getInvocationCwd();
@@ -140,7 +220,15 @@ export async function startServerInBackground(opts?: {
   const outPath = path.join(logsDir, "jupyter.out.log");
   const errPath = path.join(logsDir, "jupyter.err.log");
 
-  if (!existsSync(jupyterPath)) {
+  // Check if jupyter is available in the venv
+  try {
+    const jupyterCheck = spawnSync("uv", ["run", "--python", venvDir, "jupyter", "--version"], { 
+      stdio: "ignore" 
+    });
+    if (jupyterCheck.status !== 0) {
+      throw new Error("Jupyter is not installed in the virtual environment.");
+    }
+  } catch {
     throw new Error("Jupyter is not installed. Run setup first.");
   }
 
@@ -157,8 +245,11 @@ export async function startServerInBackground(opts?: {
 
   const isWindows = os.platform() === "win32";
   const child = spawn(
-    jupyterPath,
+    "uv",
     [
+      "run",
+      "--python", venvDir,
+      "jupyter",
       "notebook",
       // Keep browser disabled here; we'll explicitly open URLs when needed
       "--no-browser",
@@ -272,6 +363,21 @@ function cleanupMetaFile(): void {
   }
 }
 
+export async function runInVenv(
+  command: string,
+  args: string[] = [],
+  opts?: { 
+    cwd?: string; 
+    onMessage?: (line: string) => void; 
+    signal?: AbortSignal;
+  }
+): Promise<void> {
+  const venvDir = getVenvDir();
+  await ensureUvInstalled({ onMessage: opts?.onMessage, signal: opts?.signal });
+  
+  await runCommand("uv", ["run", "--python", venvDir, command, ...args], opts);
+}
+
 async function runCommand(
   cmd: string,
   args: string[],
@@ -309,40 +415,6 @@ async function runCommand(
       else reject(new Error(`${cmd} ${args.join(" ")} exited with code ${code}`));
     });
   });
-}
-
-function detectPythonExecutable(): { command: string; argsPrefix: string[] } {
-  // On Windows prefer the Python launcher `py -3` if available.
-  // Else try `python3`, then `python`.
-  // As a final fallback, use Node's execPath (rarely useful).
-  const platform = os.platform();
-  if (platform === "win32") {
-    try {
-      const res = spawnSync("py", ["-3", "--version"], { stdio: "ignore" });
-      if (res.status === 0) return { command: "py", argsPrefix: ["-3"] };
-    } catch {
-      // ignore
-    }
-    try {
-      const res = spawnSync("python", ["--version"], { stdio: "ignore" });
-      if (res.status === 0) return { command: "python", argsPrefix: [] };
-    } catch {
-      // ignore
-    }
-  }
-  try {
-    const res = spawnSync("python3", ["--version"], { stdio: "ignore" });
-    if (res.status === 0) return { command: "python3", argsPrefix: [] };
-  } catch {
-    // ignore
-  }
-  try {
-    const res = spawnSync("python", ["--version"], { stdio: "ignore" });
-    if (res.status === 0) return { command: "python", argsPrefix: [] };
-  } catch {
-    // ignore
-  }
-  return { command: process.execPath, argsPrefix: [] };
 }
 
 async function waitForProcessExit(pid: number, timeoutMs: number): Promise<boolean> {
