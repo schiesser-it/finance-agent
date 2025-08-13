@@ -11,6 +11,12 @@ export const COMMANDS: CommandSpec[] = [
   { name: "/update", description: "Update the Jupyter Notebook server" },
   { name: "/reset", description: "Delete the notebook to start fresh" },
   { name: "/fix", description: "Analyze last error in notebook and propose a fix" },
+  {
+    name: "/dashboard",
+    description: "Generate the a dashboard file (overwrites existing)",
+  },
+  { name: "/start-dashboard", description: "Start the dashboard server" },
+  { name: "/stop-dashboard", description: "Stop the running dashboard server" },
   { name: "/login", description: "Enter your Anthropic API key" },
   {
     name: "/model",

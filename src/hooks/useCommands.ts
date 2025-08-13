@@ -5,6 +5,7 @@ import { useApp } from "ink";
 import { useState, useCallback, useRef, useMemo } from "react";
 
 import { ClaudeService } from "../services/claudeService.js";
+import type { ClaudeResponse } from "../services/claudeService.js";
 import { COMMANDS } from "../services/commands.js";
 import {
   readSelectedModelFromConfig,
@@ -14,16 +15,19 @@ import {
   readThinkingModeFromConfig,
   writeThinkingModeToConfig,
 } from "../services/config.js";
+import { stopDashboard, isDashboardRunning, runDashboard } from "../services/dashboardService.js";
 import {
-  isVenvReady,
   startServerInBackground,
   stopServer,
   isServerRunning,
-  getDefaultPackages,
-  updateVenvPackages,
   openNotebookInBrowser,
 } from "../services/jupyterService.js";
-import { buildPromptWithNotebookPrefix, NOTEBOOK_FILE } from "../services/prompts.js";
+import {
+  buildPromptWithNotebookPrefix,
+  DASHBOARD_FILE,
+  NOTEBOOK_FILE,
+} from "../services/prompts.js";
+import { getDefaultPackages, isVenvReady, updateVenvPackages } from "../services/venv.js";
 
 type RunningCommand = "execute" | "login" | "examples" | null;
 
@@ -40,63 +44,77 @@ export const useCommands = () => {
   }, []);
 
   const executePrompt = useCallback(
-    (prompt: string, options?: { includeGuidance?: boolean }) => {
+    async (
+      prompt: string,
+      options?: {
+        includeGuidance?: boolean;
+        openNotebookOnSuccess?: boolean;
+        echoPrompt?: boolean;
+        useRawPrompt?: boolean;
+      },
+    ): Promise<ClaudeResponse> => {
       if (runningCommand && runningCommand !== "examples") {
-        return; // Block if a command is already running (except when in examples picker)
+        return { success: false, error: "Another command is already running" };
       }
 
       setRunningCommand("execute");
-      setOutput((prev) => [...prev, `> ${prompt}`]);
-      const calculatedPrompt = buildPromptWithNotebookPrefix(prompt, {
-        includeGuidance: options?.includeGuidance ?? true,
-      });
+      if (options?.echoPrompt !== false) {
+        setOutput((prev) => [...prev, `> ${prompt}`]);
+      }
+      const calculatedPrompt = options?.useRawPrompt
+        ? prompt
+        : buildPromptWithNotebookPrefix(prompt, {
+            includeGuidance: options?.includeGuidance ?? true,
+          });
 
-      // Create new abort controller for this execution
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-      // Execute in a non-blocking way
-      ClaudeService.executePrompt(calculatedPrompt, {
-        abortController,
-        onMessage: (message: string) => {
-          setOutput((prev) => [...prev, message]);
-        },
-      })
-        .then((response) => {
-          if (!response.success && response.error) {
-            // Check if it's an abort-related error
-            if (response.error.includes("aborted") || response.error.includes("cancelled")) {
-              setOutput((prev) => [...prev, "⚠️  Operation cancelled by user"]);
-            } else {
-              setOutput((prev) => [...prev, `Error: ${response.error}`]);
-            }
-          } else if (response.success) {
-            // Open the updated notebook only on success
-            openNotebookInBrowser(NOTEBOOK_FILE, {
-              onMessage: (line) => setOutput((prev) => [...prev, line]),
-            }).catch((e) => {
+      try {
+        const response = await ClaudeService.executePrompt(calculatedPrompt, {
+          abortController,
+          onMessage: (message: string) => {
+            setOutput((prev) => [...prev, message]);
+          },
+        });
+
+        if (!response.success && response.error) {
+          if (response.error.includes("aborted") || response.error.includes("cancelled")) {
+            setOutput((prev) => [...prev, "⚠️  Operation cancelled by user"]);
+          } else {
+            setOutput((prev) => [...prev, `Error: ${response.error}`]);
+          }
+        } else if (response.success) {
+          if (options?.openNotebookOnSuccess !== false) {
+            try {
+              await openNotebookInBrowser(NOTEBOOK_FILE, {
+                onMessage: (line) => setOutput((prev) => [...prev, line]),
+              });
+            } catch (e) {
               setOutput((prev) => [
                 ...prev,
                 `Failed to open notebook: ${e instanceof Error ? e.message : String(e)}`,
               ]);
-            });
+            }
           }
-        })
-        .catch((error) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if ((error as any).name === "AbortError" || (error as any).message?.includes("aborted")) {
-            setOutput((prev) => [...prev, "⚠️  Operation cancelled by user"]);
-          } else {
-            setOutput((prev) => [
-              ...prev,
-              `Error: ${error instanceof Error ? error.message : String(error)}`,
-            ]);
-          }
-        })
-        .finally(() => {
-          setRunningCommand(null);
-          abortControllerRef.current = null;
-        });
+        }
+
+        return response;
+      } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((error as any).name === "AbortError" || (error as any).message?.includes("aborted")) {
+          setOutput((prev) => [...prev, "⚠️  Operation cancelled by user"]);
+        } else {
+          setOutput((prev) => [
+            ...prev,
+            `Error: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      } finally {
+        setRunningCommand(null);
+        abortControllerRef.current = null;
+      }
     },
     [runningCommand],
   );
@@ -217,6 +235,96 @@ export const useCommands = () => {
           setOutput((prev) => [
             ...prev,
             `Failed to read or parse \`${NOTEBOOK_FILE}\`: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
+        return;
+      }
+
+      if (command === "/dashboard") {
+        // Remove any existing dashboard file first
+        try {
+          const dashboardPath = path.resolve(getInvocationCwd(), DASHBOARD_FILE);
+          if (existsSync(dashboardPath)) {
+            unlinkSync(dashboardPath);
+            setOutput((prev) => [
+              ...prev,
+              `Removed existing \`${DASHBOARD_FILE}\`. It will be regenerated now.`,
+            ]);
+          }
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Warning: Failed to remove existing \`${DASHBOARD_FILE}\`: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          ]);
+        }
+
+        const dashboardPrompt = `Convert the notebook \`@${NOTEBOOK_FILE}\` into a professional Streamlit dashboard with this layout:
+
+## Layout Structure
+- **Header**: Title and Date
+    - Title: left
+    - Date: right
+- **KPI Row**: (if the notebook contains any KPIs)
+    - Use red for negative trends and green for positive trend
+- **Charts Grid**:
+    - Use the four best charts from the notebook
+- **Bottom Row**: 
+   - Add summary or conclusion of the notebook if available
+
+## Key Requirements
+- Generate the code in a single file called \`${DASHBOARD_FILE}\`
+- Use Plotly for all charts
+- Professional styling with trend arrows/colors
+- Use uniform card heights for each row
+- Show two decimal places for each trend indicator`;
+
+        const response = await executePrompt(dashboardPrompt, {
+          openNotebookOnSuccess: false,
+          echoPrompt: false,
+          useRawPrompt: true,
+        });
+
+        if (!response.success) {
+          return;
+        }
+
+        setOutput((prev) => [
+          ...prev,
+          `✅ Dashboard generated: \`${DASHBOARD_FILE}\`.`,
+          `Run /start-dashboard to launch the server.`,
+        ]);
+        return;
+      }
+
+      if (command === "/start-dashboard") {
+        try {
+          setOutput((prev) => [...prev, `▶ Running: streamlit run ${DASHBOARD_FILE}`]);
+          await runDashboard(DASHBOARD_FILE, {
+            onMessage: (line) => setOutput((prev) => [...prev, line]),
+          });
+          setOutput((prev) => [...prev, `Tip: Use /stop-dashboard to stop the server.`]);
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Error starting dashboard: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
+        return;
+      }
+
+      if (command === "/stop-dashboard") {
+        try {
+          if (!isDashboardRunning()) {
+            setOutput((prev) => [...prev, "No running dashboard found."]);
+            return;
+          }
+          await stopDashboard({ onMessage: (line) => setOutput((prev) => [...prev, line]) });
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Error stopping dashboard: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
         return;

@@ -1,7 +1,7 @@
 import { Box, Text, useApp, useInput } from "ink";
 import React, { useEffect, useState, useCallback } from "react";
 
-import { isVenvReady, ensureVenvAndPackages } from "../services/jupyterService.js";
+import { ensureVenvAndPackages, isVenvReady } from "../services/venv.js";
 
 import Header from "./Header.js";
 

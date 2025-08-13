@@ -4,6 +4,7 @@ import path from "node:path";
 import { getInvocationCwd, readThinkingModeFromConfig } from "./config.js";
 
 export const NOTEBOOK_FILE = "analysis.ipynb";
+export const DASHBOARD_FILE = "dashboard.py";
 const ADD_GRAPH_PROMPT =
   "Make sure to tell a story and add supporting visual pleasing graphs using plotly.";
 const YFINANCE_PROMPT =

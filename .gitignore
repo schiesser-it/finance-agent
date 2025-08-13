@@ -6,6 +6,9 @@ finance-agent-*.tgz
 # OS
 .DS_Store
 
+# streamlit
+dashboard.py
+
 # jupyter
 analysis.ipynb
 .ipynb_checkpoints/
