@@ -1,5 +1,13 @@
 # finagent
 
+## 0.0.8
+
+### Patch Changes
+
+- [`ed97c13`](https://github.com/schiesser-it/finance-agent/commit/ed97c13489e40d17a028df765e3f57aaf6bb9854) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - add /thinking command
+
+- [`ffbe559`](https://github.com/schiesser-it/finance-agent/commit/ffbe559fb63747b958afa4bd581d9ca2ef206c51) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Added spinner and fun quotes while executing prompt
+
 ## 0.0.7
 
 ### Patch Changes
