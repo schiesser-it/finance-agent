@@ -1,5 +1,11 @@
 # finagent
 
+## 0.0.7
+
+### Patch Changes
+
+- [#8](https://github.com/schiesser-it/finance-agent/pull/8) [`ed85cef`](https://github.com/schiesser-it/finance-agent/commit/ed85cef49dea928e6fbca07969040815b0429b96) Thanks [@leehuwuj](https://github.com/leehuwuj)! - Use uv to install and create virtual python environment
+
 ## 0.0.6
 
 ### Patch Changes
