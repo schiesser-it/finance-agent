@@ -1,0 +1,5 @@
+Ticker,ETF Name,Asset Class,Allocation (%),Region,Rebalance Frequency,Notes
+VT,Vanguard Total World Stock ETF,Global Equities,70,Global,Annual,All-world market-cap equity exposure
+VBR,Vanguard Small-Cap Value ETF,US Small-Cap Value Tilt,10,United States,Annual,Factor tilt for diversification and expected premium
+BND,Vanguard Total Bond Market ETF,Investment-Grade Bonds,15,United States,Annual,Core US aggregate bonds
+VXUS,Vanguard Total International Stock ETF,International Equities,5,Ex-US Global,Annual,Additional ex-US tilt if desired

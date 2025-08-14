@@ -1,0 +1,5 @@
+Ticker,ETF Name,Asset Class,Allocation (%),Region,Rebalance Frequency,Notes
+VYM,Vanguard High Dividend Yield ETF,High Dividend Equities,20,United States,Annual,Large-cap dividend payers
+VXUS,Vanguard Total International Stock ETF,International Equities,15,Ex-US Global,Annual,Diversifies equity income internationally
+BND,Vanguard Total Bond Market ETF,Investment-Grade Bonds,40,United States,Annual,Core IG bond exposure
+TIP,iShares TIPS Bond ETF,Inflation-Linked Bonds,25,United States,Annual,Inflation protection via US TIPS

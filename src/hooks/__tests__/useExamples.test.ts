@@ -84,7 +84,8 @@ describe("useExamples", () => {
         result.current.selectNextExample();
       });
 
-      expect(result.current.selectedExampleIndex).toBe(2);
+      const maxIndex = result.current.examples.length - 1;
+      expect(result.current.selectedExampleIndex).toBe(maxIndex);
     });
 
     it("should handle navigation bounds correctly", () => {
