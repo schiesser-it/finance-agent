@@ -16,6 +16,10 @@
     "build": "tsup --config tsup.config.ts",
     "dev": "tsx src/index.tsx",
     "start": "node dist/index.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
     "changeset": "changeset",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
     "format": "prettier . --write",
@@ -34,16 +38,18 @@
     "access": "public"
   },
   "dependencies": {
-    "@anthropic-ai/claude-code": "^1.0.71",
-    "ink": "^6.1.0",
+    "@anthropic-ai/claude-code": "^1.0.80",
+    "ink": "^6.1.1",
     "react": "^19.1.1"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.5",
+    "@testing-library/jest-dom": "^6.7.0",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^20",
-    "@types/react": "^19.1.9",
-    "@typescript-eslint/eslint-plugin": "^8.39.0",
+    "@types/react": "^19.1.10",
+    "@typescript-eslint/eslint-plugin": "^8.39.1",
     "@typescript-eslint/parser": "^8.39.0",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.2",
@@ -51,9 +57,11 @@
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.2",
+    "jsdom": "^26.1.0",
     "prettier": "^3.6.2",
     "tsup": "^8.5.0",
-    "tsx": "^4.7.0"
+    "tsx": "^4.20.4",
+    "vitest": "^3.2.4"
   },
   "keywords": [
     "cli",
