@@ -1,5 +1,15 @@
 # finagent
 
+## 0.0.9
+
+### Patch Changes
+
+- [`895427e`](https://github.com/schiesser-it/finance-agent/commit/895427e48f36b6ff9600df083f3f5fb3c48ba914) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Check if notebook exists at startup and show warning if it exists
+
+- [`895427e`](https://github.com/schiesser-it/finance-agent/commit/895427e48f36b6ff9600df083f3f5fb3c48ba914) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Add investment plan example
+
+- [`9283e0d`](https://github.com/schiesser-it/finance-agent/commit/9283e0dba599e1089809174b7509acb01f4b7bc3) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Add /dashboard command to generate a dashboard from the notebook
+
 ## 0.0.8
 
 ### Patch Changes
