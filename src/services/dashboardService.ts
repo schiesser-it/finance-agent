@@ -28,10 +28,14 @@ export async function runDashboard(
         { stdio: "ignore" },
       );
       if (streamlitCheck.status !== 0) {
-        throw new Error("Streamlit is not installed in the virtual environment.");
+        throw new Error(
+          "Streamlit is not installed. Please run the `/update` command to update your notebook environment with Streamlit.",
+        );
       }
     } catch {
-      throw new Error("Streamlit is not installed. Run setup first.");
+      throw new Error(
+        "Streamlit is not installed. Please run the `/update` command to update your notebook environment with Streamlit.",
+      );
     }
 
     const cwd = opts?.cwd ?? getInvocationCwd();
