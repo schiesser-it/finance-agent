@@ -1,0 +1,1 @@
+get the latest finance news and run a sentiment analysis on them
