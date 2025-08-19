@@ -8,6 +8,9 @@ import {
   type PermissionMode,
   type Options,
 } from "@anthropic-ai/claude-code";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs";
 
 import { readSelectedModelFromConfig } from "./config.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
@@ -116,6 +119,21 @@ class MessageRenderer {
 }
 
 export class ClaudeService {
+  private static getMcpServerPath(): string {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    
+    // Try compiled version first (dist/server.js)
+    const compiledServerPath = path.resolve(__dirname, "..", "server.js");
+    if (fs.existsSync(compiledServerPath)) {
+      return compiledServerPath;
+    }
+    
+    // Fallback to development version (src/mcp-server/server.ts)
+    const devServerPath = path.resolve(__dirname, "..", "mcp-server", "server.ts");
+    return devServerPath;
+  }
+
   static async executePrompt(prompt: string, options: ClaudeOptions = {}): Promise<ClaudeResponse> {
     try {
       const abortController = options.abortController || new AbortController();
@@ -133,10 +151,13 @@ export class ClaudeService {
 
       // Add MCP configuration if enabled
       if (options.useMCP) {
+        const serverPath = this.getMcpServerPath();
+        const isCompiledVersion = serverPath.endsWith(".js");
+        
         queryOptions.mcpServers = {
           "finance-agent": {
-            command: "npx",
-            args: ["tsx", "src/mcp-server/server.ts"],
+            command: isCompiledVersion ? "node" : "npx",
+            args: isCompiledVersion ? [serverPath] : ["tsx", serverPath],
             env: {
               ...process.env,
               PWD: process.cwd(),
