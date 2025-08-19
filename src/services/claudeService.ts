@@ -1,3 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import {
   query,
   type SDKMessage,
@@ -7,10 +11,8 @@ import {
   type SDKSystemMessage,
   type PermissionMode,
   type Options,
+  McpStdioServerConfig,
 } from "@anthropic-ai/claude-code";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import fs from "node:fs";
 
 import { readSelectedModelFromConfig } from "./config.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
@@ -18,7 +20,6 @@ import { SYSTEM_PROMPT } from "./prompts.js";
 export interface ClaudeOptions {
   abortController?: AbortController;
   onMessage?: (message: string) => void;
-  useMCP?: boolean; // Enable automatic MCP server management - server will be started and stopped automatically
 }
 
 export interface ClaudeResponse {
@@ -122,51 +123,49 @@ export class ClaudeService {
   private static getMcpServerPath(): string {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    
+
     // Try compiled version first (dist/server.js)
     const compiledServerPath = path.resolve(__dirname, "..", "server.js");
-    if (fs.existsSync(compiledServerPath)) {
-      return compiledServerPath;
+    if (!fs.existsSync(compiledServerPath)) {
+      throw new Error("Compiled MCP server not found. Run `npm run build` first.");
     }
-    
-    // Fallback to development version (src/mcp-server/server.ts)
-    const devServerPath = path.resolve(__dirname, "..", "mcp-server", "server.ts");
-    return devServerPath;
+
+    return compiledServerPath;
+  }
+
+  private static createQueryOptions(params: ClaudeOptions): Partial<Options> {
+    const selectedModel = readSelectedModelFromConfig();
+
+    const serverPath = this.getMcpServerPath();
+    const mcpServers = {
+      "finance-agent": {
+        type: "stdio",
+        command: "node",
+        args: [serverPath],
+        env: {
+          ...process.env,
+          PWD: process.cwd(),
+        },
+      } as McpStdioServerConfig,
+    };
+
+    const baseOptions: Partial<Options> = {
+      model: selectedModel,
+      abortController: params.abortController,
+      customSystemPrompt: SYSTEM_PROMPT,
+      // TODO: add proper permission handling
+      permissionMode: "bypassPermissions" as PermissionMode,
+      allowedTools: Object.keys(mcpServers).map((name) => `mcp__${name}`),
+      mcpServers,
+    };
+
+    return baseOptions;
   }
 
   static async executePrompt(prompt: string, options: ClaudeOptions = {}): Promise<ClaudeResponse> {
     try {
       const abortController = options.abortController || new AbortController();
-      const selectedModel = readSelectedModelFromConfig();
-
-      // Configure MCP if requested
-      const queryOptions: Partial<Options> = {
-        model: selectedModel,
-        // maxTurns: 3,
-        abortController,
-        customSystemPrompt: SYSTEM_PROMPT,
-        // TODO: add proper permission handling
-        permissionMode: "bypassPermissions" as PermissionMode,
-      };
-
-      // Add MCP configuration if enabled
-      if (options.useMCP) {
-        const serverPath = this.getMcpServerPath();
-        const isCompiledVersion = serverPath.endsWith(".js");
-        
-        queryOptions.mcpServers = {
-          "finance-agent": {
-            command: isCompiledVersion ? "node" : "npx",
-            args: isCompiledVersion ? [serverPath] : ["tsx", serverPath],
-            env: {
-              ...process.env,
-              PWD: process.cwd(),
-            },
-          },
-        };
-        // Allow all tools from the finance-agent MCP server
-        queryOptions.allowedTools = ["mcp__finance-agent"];
-      }
+      const queryOptions = this.createQueryOptions({ abortController });
 
       for await (const message of query({
         prompt,
