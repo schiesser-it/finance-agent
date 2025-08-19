@@ -73,6 +73,7 @@ export const useCommands = () => {
       try {
         const response = await ClaudeService.executePrompt(calculatedPrompt, {
           abortController,
+          useMCP: true, // Enable MCP tools
           onMessage: (message: string) => {
             setOutput((prev) => [...prev, message]);
           },

@@ -5,6 +5,9 @@ import {
   type SDKUserMessage,
   type SDKResultMessage,
   type SDKSystemMessage,
+  type McpServerConfig,
+  type PermissionMode,
+  type Options,
 } from "@anthropic-ai/claude-code";
 
 import { readSelectedModelFromConfig } from "./config.js";
@@ -13,6 +16,7 @@ import { SYSTEM_PROMPT } from "./prompts.js";
 export interface ClaudeOptions {
   abortController?: AbortController;
   onMessage?: (message: string) => void;
+  useMCP?: boolean; // Enable automatic MCP server management - server will be started and stopped automatically
 }
 
 export interface ClaudeResponse {
@@ -116,19 +120,37 @@ export class ClaudeService {
   static async executePrompt(prompt: string, options: ClaudeOptions = {}): Promise<ClaudeResponse> {
     try {
       const abortController = options.abortController || new AbortController();
-
       const selectedModel = readSelectedModelFromConfig();
+
+      // Configure MCP if requested
+      const queryOptions: Partial<Options> = {
+        model: selectedModel,
+        // maxTurns: 3,
+        abortController,
+        customSystemPrompt: SYSTEM_PROMPT,
+        // TODO: add proper permission handling
+        permissionMode: "bypassPermissions" as PermissionMode,
+      };
+
+      // Add MCP configuration if enabled
+      if (options.useMCP) {
+        queryOptions.mcpServers = {
+          "finance-agent": {
+            command: "npx",
+            args: ["tsx", "src/mcp-server/server.ts"],
+            env: {
+              ...process.env,
+              PWD: process.cwd()
+            }
+          }
+        };
+        // Allow all tools from the finance-agent MCP server
+        queryOptions.allowedTools = ["mcp__finance-agent"];
+      }
 
       for await (const message of query({
         prompt,
-        options: {
-          model: selectedModel,
-          // maxTurns: 3,
-          abortController,
-          customSystemPrompt: SYSTEM_PROMPT,
-          // TODO: add proper permission handling
-          permissionMode: "bypassPermissions",
-        },
+        options: queryOptions,
       })) {
         const renderedMessage = MessageRenderer.renderMessage(message);
         if (options.onMessage) {

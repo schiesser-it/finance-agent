@@ -39,8 +39,10 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^1.0.80",
+    "@modelcontextprotocol/sdk": "^1.17.3",
     "ink": "^6.1.1",
-    "react": "^19.1.1"
+    "react": "^19.1.1",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",

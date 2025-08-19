@@ -22,7 +22,10 @@ function readNvmrcVersion(): string | undefined {
 const nodeTarget = readNvmrcVersion() ?? "node20";
 
 export default defineConfig({
-  entry: ["src/index.tsx"],
+  entry: [
+    "src/index.tsx",
+    "src/mcp-server/server.ts"
+  ],
   format: ["esm"],
   minify: true,
   platform: "node",

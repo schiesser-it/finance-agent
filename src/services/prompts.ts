@@ -7,6 +7,7 @@ export const NOTEBOOK_FILE = "analysis.ipynb";
 export const DASHBOARD_FILE = "dashboard.py";
 const ADD_GRAPH_PROMPT =
   "Make sure to tell a story and add supporting visual pleasing graphs using plotly.";
+const PDF_READER_PROMPT = ". Do not use default `Read` tool for reading a pdf binary file, use the pdf reader tool instead";
 const YFINANCE_PROMPT =
   "When using yfinance, auto_adjust=True is now the default. This means that 'Open', 'High', 'Low', and 'Close' columns are all automatically adjusted for stock splits and dividends. No need to use e.g. 'Adj Close' anymore.";
 
@@ -25,6 +26,7 @@ export const buildPromptWithNotebookPrefix = (
   if (thinking === "normal") postfix = " think";
   if (thinking === "hard") postfix = " think hard";
   if (thinking === "harder") postfix = " think harder";
+  postfix += ` ${PDF_READER_PROMPT}`;
   return `${prefix} ${userPrompt}${postfix}`;
 };
 
