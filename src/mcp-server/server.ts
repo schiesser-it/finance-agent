@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
 import { registerAllTools } from "./tools/index.js";
 
 export class FinanceMCPServer {
@@ -17,7 +18,7 @@ export class FinanceMCPServer {
     try {
       // Register tools only (no bullshit resources/prompts for now)
       await registerAllTools(this.server);
-      
+
       console.error("✅ MCP server initialized successfully");
     } catch (error) {
       console.error("❌ Error initializing MCP server:", error);
@@ -28,10 +29,10 @@ export class FinanceMCPServer {
   async start(): Promise<void> {
     try {
       await this.initialize();
-      
+
       this.transport = new StdioServerTransport();
       await this.server.connect(this.transport);
-      
+
       console.error("🚀 Finance Agent MCP server is running...");
     } catch (error) {
       console.error("❌ Error starting MCP server:", error);
@@ -63,8 +64,8 @@ async function main() {
     process.exit(0);
   };
 
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 
   try {
     await mcpServer.start();

@@ -7,9 +7,9 @@ export interface ToolConfig {
   schema: {
     title: string;
     description: string;
-    inputSchema: Record<string, z.ZodType<any>>;
+    inputSchema: Record<string, z.ZodType<unknown>>;
   };
-  handler: (args: any) => Promise<{
+  handler: (args: Record<string, unknown>) => Promise<{
     content: Array<{
       type: string;
       text: string;
@@ -28,7 +28,10 @@ export interface ResourceConfig {
     description: string;
     mimeType?: string;
   };
-  handler: (uri: URL, params: Record<string, string>) => Promise<{
+  handler: (
+    uri: URL,
+    params: Record<string, string>,
+  ) => Promise<{
     contents: Array<{
       uri: string;
       text: string;
@@ -44,9 +47,9 @@ export interface PromptConfig {
   metadata: {
     title: string;
     description: string;
-    argsSchema: Record<string, z.ZodType<any>>;
+    argsSchema: Record<string, z.ZodType<unknown>>;
   };
-  handler: (args: any) => {
+  handler: (args: Record<string, unknown>) => {
     messages: Array<{
       role: string;
       content: {
@@ -77,7 +80,7 @@ export interface ServerConfig {
 export type ToolCategory = "joke" | "finance" | "utility" | "analysis" | "market-data";
 
 /**
- * Resource categories for organization  
+ * Resource categories for organization
  */
 export type ResourceCategory = "data" | "reports" | "documentation" | "templates";
 

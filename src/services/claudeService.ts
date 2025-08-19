@@ -5,7 +5,6 @@ import {
   type SDKUserMessage,
   type SDKResultMessage,
   type SDKSystemMessage,
-  type McpServerConfig,
   type PermissionMode,
   type Options,
 } from "@anthropic-ai/claude-code";
@@ -140,9 +139,9 @@ export class ClaudeService {
             args: ["tsx", "src/mcp-server/server.ts"],
             env: {
               ...process.env,
-              PWD: process.cwd()
-            }
-          }
+              PWD: process.cwd(),
+            },
+          },
         };
         // Allow all tools from the finance-agent MCP server
         queryOptions.allowedTools = ["mcp__finance-agent"];
