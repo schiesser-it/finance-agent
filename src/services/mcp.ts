@@ -9,7 +9,12 @@ export function createMCPServer(): Record<string, McpStdioServerConfig> {
   const __dirname = path.dirname(__filename);
 
   // always use compiled server (so dev is testing the release)
-  const serverPath = path.resolve(__dirname, "mcp-server", "server.js");
+  // In dev mode, __dirname is src/services, so we need to go up to root then into dist
+  // In prod mode, __dirname is dist, so we can use relative path
+  const isInSrcDir = __dirname.includes("/src/");
+  const serverPath = isInSrcDir
+    ? path.resolve(__dirname, "..", "..", "dist", "mcp-server", "server.js")
+    : path.resolve(__dirname, "mcp-server", "server.js");
   if (!fs.existsSync(serverPath)) {
     throw new Error(`Compiled MCP server not found in ${serverPath}. Run \`npm run build\` first.`);
   }
