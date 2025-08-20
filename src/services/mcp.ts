@@ -11,7 +11,7 @@ export function createMCPServer(): Record<string, McpStdioServerConfig> {
   // always use compiled server (so dev is testing the release)
   const serverPath = path.resolve(__dirname, "mcp-server", "server.js");
   if (!fs.existsSync(serverPath)) {
-    throw new Error("Compiled MCP server not found. Run `npm run build` first.");
+    throw new Error(`Compiled MCP server not found in ${serverPath}. Run \`npm run build\` first.`);
   }
 
   return {
