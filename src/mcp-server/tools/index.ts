@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import { pdfReaderTools } from "./pdfReader";
+import { pdfTools } from "./pdf";
 import { ToolConfig } from "./types";
 
 /**
@@ -10,10 +10,10 @@ export async function registerAllTools(server: McpServer): Promise<void> {
   console.error("📦 Registering tools...");
 
   try {
-    // Register PDF reader tools
-    await registerToolCategory(server, "PDF Tools", pdfReaderTools);
+    // Register PDF tools
+    await registerToolCategory(server, "PDF Tools", pdfTools);
 
-    console.error("✅ All tools registered successfully");
+    console.log("✅ All tools registered successfully");
   } catch (error) {
     console.error("❌ Error registering tools:", error);
     throw error;
@@ -33,7 +33,7 @@ async function registerToolCategory(
   for (const [toolName, toolConfig] of Object.entries(tools)) {
     try {
       server.registerTool(toolName, toolConfig.schema, toolConfig.handler);
-      console.error(`    ✓ ${toolName}`);
+      console.log(`    ✓ ${toolName}`);
     } catch (error) {
       console.error(`    ❌ Failed to register ${toolName}:`, error);
       throw error;

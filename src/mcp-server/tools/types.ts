@@ -1,5 +1,3 @@
-import type { z } from "zod";
-
 /**
  * Configuration for an MCP tool
  */
@@ -7,7 +5,11 @@ export interface ToolConfig {
   schema: {
     title: string;
     description: string;
-    inputSchema: Record<string, z.ZodType<unknown>>;
+    inputSchema: {
+      type: "object";
+      properties: Record<string, any>;
+      required?: string[];
+    };
   };
   handler: (args: Record<string, unknown>) => Promise<{
     content: Array<{
@@ -47,7 +49,11 @@ export interface PromptConfig {
   metadata: {
     title: string;
     description: string;
-    argsSchema: Record<string, z.ZodType<unknown>>;
+    argsSchema: {
+      type: "object";
+      properties: Record<string, any>;
+      required?: string[];
+    };
   };
   handler: (args: Record<string, unknown>) => {
     messages: Array<{
