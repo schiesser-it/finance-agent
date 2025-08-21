@@ -71,20 +71,24 @@ describe("useExamples", () => {
         result.current.selectNextExample();
       });
 
-      expect(result.current.selectedExampleIndex).toBe(1);
-
-      act(() => {
-        result.current.selectNextExample();
-      });
-
-      expect(result.current.selectedExampleIndex).toBe(2);
-
-      // Should not go beyond the last index
-      act(() => {
-        result.current.selectNextExample();
-      });
-
       const maxIndex = result.current.examples.length - 1;
+      expect(result.current.selectedExampleIndex).toBe(Math.min(1, maxIndex));
+
+      act(() => {
+        result.current.selectNextExample();
+      });
+
+      expect(result.current.selectedExampleIndex).toBe(Math.min(2, maxIndex));
+
+      // Advance to the end and ensure we stop at the last index
+      act(() => {
+        const remaining = maxIndex - result.current.selectedExampleIndex;
+        for (let i = 0; i < remaining + 2; i++) {
+          // +2 tries to go beyond the end to verify clamping
+          result.current.selectNextExample();
+        }
+      });
+
       expect(result.current.selectedExampleIndex).toBe(maxIndex);
     });
 

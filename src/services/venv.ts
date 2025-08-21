@@ -14,7 +14,8 @@ const DEFAULT_PACKAGES: string[] = [
   "plotly",
   "streamlit",
   "watchdog",
-  "llama-cloud-services"
+  "llama-cloud-services",
+  "feedparser",
 ];
 
 export function getDefaultPackages(): string[] {
