@@ -14,7 +14,6 @@ const DEFAULT_PACKAGES: string[] = [
   "plotly",
   "streamlit",
   "watchdog",
-  "llama-cloud-services",
   "feedparser",
 ];
 

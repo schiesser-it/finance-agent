@@ -120,19 +120,17 @@ export class ClaudeService {
       const abortController = options.abortController || new AbortController();
       const mcpServers = createMCPServer();
 
-      const queryOptions = {
-        model: readSelectedModelFromConfig(),
-        abortController,
-        customSystemPrompt: SYSTEM_PROMPT,
-        // TODO: add proper permission handling
-        permissionMode: "bypassPermissions" as PermissionMode,
-        allowedTools: Object.keys(mcpServers).map((name) => `mcp__${name}`),
-        mcpServers,
-      };
-
       for await (const message of query({
         prompt,
-        options: queryOptions,
+        options: {
+          model: readSelectedModelFromConfig(),
+          abortController,
+          customSystemPrompt: SYSTEM_PROMPT,
+          // TODO: add proper permission handling
+          permissionMode: "bypassPermissions" as PermissionMode,
+          allowedTools: Object.keys(mcpServers).map((name) => `mcp__${name}`),
+          mcpServers,
+        },
       })) {
         const renderedMessage = MessageRenderer.renderMessage(message);
         if (options.onMessage) {
