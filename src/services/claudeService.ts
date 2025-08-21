@@ -5,9 +5,11 @@ import {
   type SDKUserMessage,
   type SDKResultMessage,
   type SDKSystemMessage,
+  type PermissionMode,
 } from "@anthropic-ai/claude-code";
 
 import { readSelectedModelFromConfig } from "./config.js";
+import { createMCPServer } from "./mcp.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
 
 export interface ClaudeOptions {
@@ -116,18 +118,18 @@ export class ClaudeService {
   static async executePrompt(prompt: string, options: ClaudeOptions = {}): Promise<ClaudeResponse> {
     try {
       const abortController = options.abortController || new AbortController();
-
-      const selectedModel = readSelectedModelFromConfig();
+      const mcpServers = createMCPServer();
 
       for await (const message of query({
         prompt,
         options: {
-          model: selectedModel,
-          // maxTurns: 3,
+          model: readSelectedModelFromConfig(),
           abortController,
           customSystemPrompt: SYSTEM_PROMPT,
           // TODO: add proper permission handling
-          permissionMode: "bypassPermissions",
+          permissionMode: "bypassPermissions" as PermissionMode,
+          allowedTools: Object.keys(mcpServers).map((name) => `mcp__${name}`),
+          mcpServers,
         },
       })) {
         const renderedMessage = MessageRenderer.renderMessage(message);

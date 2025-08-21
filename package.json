@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^1.0.80",
+    "@modelcontextprotocol/sdk": "^1.17.3",
     "ink": "^6.1.1",
     "react": "^19.1.1"
   },
@@ -61,7 +62,8 @@
     "prettier": "^3.6.2",
     "tsup": "^8.5.0",
     "tsx": "^4.20.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "zod": "^3.24.2"
   },
   "keywords": [
     "cli",

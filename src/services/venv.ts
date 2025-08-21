@@ -14,6 +14,7 @@ const DEFAULT_PACKAGES: string[] = [
   "plotly",
   "streamlit",
   "watchdog",
+  "feedparser",
 ];
 
 export function getDefaultPackages(): string[] {
