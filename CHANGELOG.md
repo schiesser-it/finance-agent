@@ -1,5 +1,11 @@
 # finagent
 
+## 0.0.10
+
+### Patch Changes
+
+- [`0602a8d`](https://github.com/schiesser-it/finance-agent/commit/0602a8deec87d07dcfadf1fa2d0a37a21dc07283) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Add working news sources
+
 ## 0.0.9
 
 ### Patch Changes
