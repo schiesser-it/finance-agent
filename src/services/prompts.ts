@@ -9,9 +9,11 @@ const ADD_GRAPH_PROMPT =
   "Make sure to tell a story and add supporting visual pleasing graphs using plotly.";
 const YFINANCE_PROMPT =
   "When using yfinance, auto_adjust=True is now the default. This means that 'Open', 'High', 'Low', and 'Close' columns are all automatically adjusted for stock splits and dividends. No need to use e.g. 'Adj Close' anymore.";
-const NEWS_SOURCES = `Use the following RSS feeds for news: 
-- Seeking Alpha: https://seekingalpha.com/feed.xml 
-- Financial Times: https://www.ft.com/rss/home 
+const PDF_PROMPT =
+  "When working with PDF, use PDF extractor tool to get the content or tabular data instead of `Read` tool.";
+const NEWS_SOURCES = `Use the following RSS feeds for news (only use this if you need additional data for your report):
+- Seeking Alpha: https://seekingalpha.com/feed.xml
+- Financial Times: https://www.ft.com/rss/home
 - MarketWatch: https://feeds.content.dowjones.io/public/rss/mw_topstories`;
 
 export const buildPromptWithNotebookPrefix = (
@@ -20,7 +22,7 @@ export const buildPromptWithNotebookPrefix = (
 ): string => {
   const includeGuidance = options?.includeGuidance !== false;
   const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
-  const guidance = includeGuidance ? ` ${ADD_GRAPH_PROMPT} ${YFINANCE_PROMPT} ${NEWS_SOURCES}` : "";
+  const guidance = includeGuidance ? ` ${ADD_GRAPH_PROMPT} ${YFINANCE_PROMPT} ${NEWS_SOURCES} ${PDF_PROMPT}` : "";
   const prefix = existsSync(notebookPath)
     ? `update the jupyter notebook named ${NOTEBOOK_FILE}.${guidance}`
     : `create a jupyter notebook named ${NOTEBOOK_FILE}.${guidance}`;
