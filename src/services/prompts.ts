@@ -9,6 +9,8 @@ const ADD_GRAPH_PROMPT =
   "Make sure to tell a story and add supporting visual pleasing graphs using plotly.";
 const YFINANCE_PROMPT =
   "When using yfinance, auto_adjust=True is now the default. This means that 'Open', 'High', 'Low', and 'Close' columns are all automatically adjusted for stock splits and dividends. No need to use e.g. 'Adj Close' anymore.";
+const PDF_PROMPT =
+  "When working with PDF, use PDF extractor tool to get the content or tabular data instead of `Read` tool.";
 
 export const buildPromptWithNotebookPrefix = (
   userPrompt: string,
@@ -16,7 +18,7 @@ export const buildPromptWithNotebookPrefix = (
 ): string => {
   const includeGuidance = options?.includeGuidance !== false;
   const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
-  const guidance = includeGuidance ? ` ${ADD_GRAPH_PROMPT} ${YFINANCE_PROMPT}` : "";
+  const guidance = includeGuidance ? ` ${ADD_GRAPH_PROMPT} ${YFINANCE_PROMPT} ${PDF_PROMPT}` : "";
   const prefix = existsSync(notebookPath)
     ? `update the jupyter notebook named ${NOTEBOOK_FILE}.${guidance}`
     : `create a jupyter notebook named ${NOTEBOOK_FILE}.${guidance}`;
