@@ -1,5 +1,11 @@
 # finagent
 
+## 0.0.11
+
+### Patch Changes
+
+- [#16](https://github.com/schiesser-it/finance-agent/pull/16) [`11ff1e5`](https://github.com/schiesser-it/finance-agent/commit/11ff1e5a82b3753e921a8cd626b24feb776578b4) Thanks [@leehuwuj](https://github.com/leehuwuj)! - Add PDF reader tool using LlamaParse
+
 ## 0.0.10
 
 ### Patch Changes
