@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import { newsReaderTools } from "./newsReader";
+import { pdfTools } from "./pdf";
 import { ToolConfig } from "./types";
 
 /**
@@ -12,6 +13,9 @@ export async function registerAllTools(server: McpServer): Promise<void> {
   try {
     // Register News Reader tools
     await registerToolCategory(server, "News Reader", newsReaderTools);
+
+    // Register PDF tools
+    await registerToolCategory(server, "PDF Tools", pdfTools);
 
     console.log("✅ All tools registered successfully");
   } catch (error) {
