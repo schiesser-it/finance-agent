@@ -4,7 +4,7 @@ export const newsReaderTools: Record<string, ToolConfig> = {
   news_reader: {
     schema: {
       title: "News Reader",
-      description: `Returns code snippet for retrieving financial news from RSS feeds. Use this code snippet in the notebook to fetch the latest financial news.
+      description: `Returns code snippet for retrieving financial news from RSS feeds. Use this code snippet in the notebook to fetch the latest financial news. Only use this tool if the user asks for the latest financial news.
 The code will fetch news from major financial sources including Seeking Alpha, Financial Times, and MarketWatch.`,
       inputSchema: {},
     },
