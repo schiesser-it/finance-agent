@@ -7,12 +7,9 @@ export type CommandSpec = {
 export const COMMANDS: CommandSpec[] = [
   { name: "/help", description: "Show available commands" },
   { name: "/examples", description: "Show example prompts" },
-  { name: "/restart", description: "Restart Jupyter Notebook server" },
-  { name: "/update", description: "Update the Jupyter Notebook server" },
+  { name: "/update", description: "Update the Python environment" },
   { name: "/reset", description: "Delete the notebook to start fresh" },
   { name: "/fix", description: "Analyze last error in notebook and propose a fix" },
-  { name: "/start-dashboard", description: "Start the dashboard server" },
-  { name: "/stop-dashboard", description: "Stop the running dashboard server" },
   { name: "/login", description: "Enter your Anthropic API key" },
   {
     name: "/model",

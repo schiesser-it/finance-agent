@@ -1,17 +1,11 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, writeFileSync, openSync, unlinkSync, readFileSync } from "node:fs";
+import { openSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { openExternalUrl } from "./browser.js";
-import {
-  ensureConfigDir,
-  getConfigDir,
-  getLogsDir,
-  getVenvDir,
-  getInvocationCwd,
-} from "./config.js";
-import { waitForProcessExit } from "./venv.js";
+import { ensureConfigDir, getLogsDir, getVenvDir, getInvocationCwd } from "./config.js";
+import { isManagedProcessRunning, readManagedMeta, writeManagedMeta } from "./processLifecycle.js";
 
 export interface JupyterPackagesConfig {
   packages: string[];
@@ -23,19 +17,7 @@ export interface JupyterServerMeta {
   notebookDir: string;
 }
 
-const SERVER_META_FILE = path.join(getConfigDir(), "jupyter.meta.json");
-
-export function isServerRunning(): boolean {
-  const meta = readServerMeta();
-  const pid = meta?.pid;
-  if (!pid || pid <= 0) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
+export const NOTEBOOK_MODE = "notebook" as const;
 
 export async function startServerInBackground(opts?: {
   port?: number;
@@ -65,7 +47,7 @@ export async function startServerInBackground(opts?: {
   }
 
   // Already running check
-  if (isServerRunning()) {
+  if (isManagedProcessRunning(NOTEBOOK_MODE)) {
     onMessage("Jupyter server already running.");
     return;
   }
@@ -102,56 +84,14 @@ export async function startServerInBackground(opts?: {
   if (!isWindows) {
     child.unref();
   }
-  writeFileSync(SERVER_META_FILE, JSON.stringify({ pid: child.pid, port, notebookDir }, null, 2), {
-    encoding: "utf8",
-  });
+  writeManagedMeta(NOTEBOOK_MODE, { pid: child.pid, port, notebookDir });
 
   // Let the UI know how to shutdown
   onMessage(`Jupyter started. Logs: ${outPath}. PID: ${child.pid}`);
 }
 
-export async function stopServer(opts?: { onMessage?: (line: string) => void }): Promise<void> {
-  const onMessage = opts?.onMessage ?? (() => {});
-  const meta = readServerMeta();
-  const pid = meta?.pid;
-  if (!pid || pid <= 0) {
-    onMessage("No running Jupyter server found.");
-    cleanupMetaFile();
-    return;
-  }
-  onMessage("Stopping Jupyter server ...");
-  try {
-    // Send SIGTERM and wait up to 5s
-    try {
-      process.kill(pid, "SIGTERM");
-    } catch {
-      // ignore
-    }
-
-    const terminatedAfterTerm = await waitForProcessExit(pid, 5000);
-    if (!terminatedAfterTerm) {
-      onMessage("Server did not stop gracefully. Sending SIGKILL ...");
-      try {
-        process.kill(pid, "SIGKILL");
-      } catch {
-        // ignore
-      }
-      const terminatedAfterKill = await waitForProcessExit(pid, 5000);
-      if (!terminatedAfterKill) {
-        onMessage("❌ Failed to stop Jupyter server. Check processes and logs.");
-        return;
-      }
-    }
-
-    cleanupMetaFile();
-    onMessage("✅ Jupyter server stopped.");
-  } catch (e) {
-    onMessage(`Error stopping server: ${e instanceof Error ? e.message : String(e)}`);
-  }
-}
-
 export function getServerPort(): number {
-  const meta = readServerMeta();
+  const meta = readManagedMeta(NOTEBOOK_MODE) as JupyterServerMeta | null;
   if (meta?.port && meta.port > 0) return meta.port;
   const envPort = Number(process.env.JUPYTER_PORT || "");
   if (Number.isFinite(envPort) && envPort > 0) return envPort as number;
@@ -173,25 +113,5 @@ export async function openNotebookInBrowser(
     onMessage(`Opening notebook in browser: ${url}`);
   } catch (e) {
     onMessage(`Failed to open browser: ${e instanceof Error ? e.message : String(e)}`);
-  }
-}
-
-function readServerMeta(): JupyterServerMeta | null {
-  try {
-    if (!existsSync(SERVER_META_FILE)) return null;
-    const metaRaw = readFileSync(SERVER_META_FILE, { encoding: "utf8" });
-    const meta = JSON.parse(metaRaw) as JupyterServerMeta;
-    if (typeof meta.pid === "number" && typeof meta.port === "number") return meta;
-  } catch {
-    // ignore
-  }
-  return null;
-}
-
-function cleanupMetaFile(): void {
-  try {
-    if (existsSync(SERVER_META_FILE)) unlinkSync(SERVER_META_FILE);
-  } catch {
-    // ignore
   }
 }

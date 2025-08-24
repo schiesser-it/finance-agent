@@ -17,13 +17,6 @@ import {
   readGenerationModeFromConfig,
   writeGenerationModeToConfig,
 } from "../services/config.js";
-import { stopDashboard, isDashboardRunning, runDashboard } from "../services/dashboardService.js";
-import {
-  startServerInBackground,
-  stopServer,
-  isServerRunning,
-  openNotebookInBrowser,
-} from "../services/jupyterService.js";
 import {
   buildPromptWithNotebookPrefix,
   DASHBOARD_FILE,
@@ -32,7 +25,8 @@ import {
   buildNotebookToDashboardPrompt,
   buildDashboardToNotebookPrompt,
 } from "../services/prompts.js";
-import { getDefaultPackages, isVenvReady, updateVenvPackages } from "../services/venv.js";
+import { runProcess } from "../services/runner.js";
+import { getDefaultPackages, updateVenvPackages } from "../services/venv.js";
 
 type RunningCommand = "execute" | "login" | "examples" | "confirm" | null;
 
@@ -94,24 +88,9 @@ export const useCommands = () => {
           }
         } else if (response.success && options?.useRawPrompt !== true) {
           const mode = readGenerationModeFromConfig();
-          if (mode === "notebook") {
-            try {
-              await openNotebookInBrowser(NOTEBOOK_FILE, {
-                onMessage: (line) => setOutput((prev) => [...prev, line]),
-              });
-            } catch (e) {
-              setOutput((prev) => [
-                ...prev,
-                `Failed to open notebook: ${e instanceof Error ? (e as Error).message : String(e)}`,
-              ]);
-            }
-          } else {
-            setOutput((prev) => [
-              ...prev,
-              `✅ Dashboard generated: \`${DASHBOARD_FILE}\`.`,
-              `Run /start-dashboard to launch the server.`,
-            ]);
-          }
+          await runProcess(mode, {
+            onMessage: (line) => setOutput((prev) => [...prev, line]),
+          });
         }
 
         return response;
@@ -154,30 +133,6 @@ export const useCommands = () => {
           setOutput((prev) => [
             ...prev,
             `Error updating packages: ${error instanceof Error ? error.message : String(error)}`,
-          ]);
-        }
-        return;
-      }
-
-      if (command === "/restart") {
-        if (!isVenvReady()) {
-          setOutput((prev) => [
-            ...prev,
-            "Environment not installed. Restart the app to set it up.",
-          ]);
-          return;
-        }
-        try {
-          if (isServerRunning()) {
-            await stopServer({ onMessage: (line) => setOutput((prev) => [...prev, line]) });
-          }
-          await startServerInBackground({
-            onMessage: (line) => setOutput((prev) => [...prev, line]),
-          });
-        } catch (error) {
-          setOutput((prev) => [
-            ...prev,
-            `Error restarting server: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
         return;
@@ -264,39 +219,6 @@ export const useCommands = () => {
         }
         return;
       }
-
-      if (command === "/start-dashboard") {
-        try {
-          setOutput((prev) => [...prev, `▶ Running: streamlit run ${DASHBOARD_FILE}`]);
-          await runDashboard(DASHBOARD_FILE, {
-            onMessage: (line) => setOutput((prev) => [...prev, line]),
-          });
-          setOutput((prev) => [...prev, `Tip: Use /stop-dashboard to stop the server.`]);
-        } catch (error) {
-          setOutput((prev) => [
-            ...prev,
-            `Error starting dashboard: ${error instanceof Error ? error.message : String(error)}`,
-          ]);
-        }
-        return;
-      }
-
-      if (command === "/stop-dashboard") {
-        try {
-          if (!isDashboardRunning()) {
-            setOutput((prev) => [...prev, "No running dashboard found."]);
-            return;
-          }
-          await stopDashboard({ onMessage: (line) => setOutput((prev) => [...prev, line]) });
-        } catch (error) {
-          setOutput((prev) => [
-            ...prev,
-            `Error stopping dashboard: ${error instanceof Error ? error.message : String(error)}`,
-          ]);
-        }
-        return;
-      }
-
       if (command === "/quit") {
         exit();
         return;
@@ -422,6 +344,11 @@ export const useCommands = () => {
             setPendingConversion("dashboard-to-notebook");
             setRunningCommand("confirm");
           }
+
+          // Ensure respective servers are running for the selected mode
+          await runProcess(now, {
+            onMessage: (line) => setOutput((prev) => [...prev, line]),
+          });
         } catch (error) {
           setOutput((prev) => [
             ...prev,
@@ -464,11 +391,10 @@ export const useCommands = () => {
           useRawPrompt: true,
         });
         if (response.success) {
-          setOutput((prev) => [
-            ...prev,
-            `✅ Dashboard generated: \`${DASHBOARD_FILE}\`.`,
-            `Run /start-dashboard to launch the server.`,
-          ]);
+          setOutput((prev) => [...prev, `✅ Dashboard generated: \`${DASHBOARD_FILE}\`.`]);
+          await runProcess("dashboard", {
+            onMessage: (line) => setOutput((prev) => [...prev, line]),
+          });
         } else {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
         }
@@ -479,16 +405,9 @@ export const useCommands = () => {
         });
         if (response.success) {
           setOutput((prev) => [...prev, `✅ Notebook generated: \`${NOTEBOOK_FILE}\`.`]);
-          try {
-            await openNotebookInBrowser(NOTEBOOK_FILE, {
-              onMessage: (line) => setOutput((prev) => [...prev, line]),
-            });
-          } catch (e) {
-            setOutput((prev) => [
-              ...prev,
-              `Failed to open notebook: ${e instanceof Error ? (e as Error).message : String(e)}`,
-            ]);
-          }
+          await runProcess("notebook", {
+            onMessage: (line) => setOutput((prev) => [...prev, line]),
+          });
         } else {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
         }
