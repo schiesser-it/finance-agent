@@ -14,6 +14,8 @@ import {
   getInvocationCwd,
   readThinkingModeFromConfig,
   writeThinkingModeToConfig,
+  readGenerationModeFromConfig,
+  writeGenerationModeToConfig,
 } from "../services/config.js";
 import { stopDashboard, isDashboardRunning, runDashboard } from "../services/dashboardService.js";
 import {
@@ -26,14 +28,20 @@ import {
   buildPromptWithNotebookPrefix,
   DASHBOARD_FILE,
   NOTEBOOK_FILE,
+  buildPromptWithDashboardPrefix,
+  buildNotebookToDashboardPrompt,
+  buildDashboardToNotebookPrompt,
 } from "../services/prompts.js";
 import { getDefaultPackages, isVenvReady, updateVenvPackages } from "../services/venv.js";
 
-type RunningCommand = "execute" | "login" | "examples" | null;
+type RunningCommand = "execute" | "login" | "examples" | "confirm" | null;
 
 export const useCommands = () => {
   const [output, setOutput] = useState<string[]>([]);
   const [runningCommand, setRunningCommand] = useState<RunningCommand>(null);
+  const [pendingConversion, setPendingConversion] = useState<
+    "notebook-to-dashboard" | "dashboard-to-notebook" | null
+  >(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const { exit } = useApp();
@@ -47,13 +55,12 @@ export const useCommands = () => {
     async (
       prompt: string,
       options?: {
-        includeGuidance?: boolean;
-        openNotebookOnSuccess?: boolean;
         echoPrompt?: boolean;
         useRawPrompt?: boolean;
       },
     ): Promise<ClaudeResponse> => {
-      if (runningCommand && runningCommand !== "examples") {
+      // Allow executePrompt to run from confirmation flow as well
+      if (runningCommand && runningCommand !== "examples" && runningCommand !== "confirm") {
         return { success: false, error: "Another command is already running" };
       }
 
@@ -61,11 +68,12 @@ export const useCommands = () => {
       if (options?.echoPrompt !== false) {
         setOutput((prev) => [...prev, `> ${prompt}`]);
       }
+      const mode = readGenerationModeFromConfig();
       const calculatedPrompt = options?.useRawPrompt
         ? prompt
-        : buildPromptWithNotebookPrefix(prompt, {
-            includeGuidance: options?.includeGuidance ?? true,
-          });
+        : mode === "dashboard"
+          ? buildPromptWithDashboardPrefix(prompt)
+          : buildPromptWithNotebookPrefix(prompt);
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
@@ -84,8 +92,9 @@ export const useCommands = () => {
           } else {
             setOutput((prev) => [...prev, `Error: ${response.error}`]);
           }
-        } else if (response.success) {
-          if (options?.openNotebookOnSuccess !== false) {
+        } else if (response.success && options?.useRawPrompt !== true) {
+          const mode = readGenerationModeFromConfig();
+          if (mode === "notebook") {
             try {
               await openNotebookInBrowser(NOTEBOOK_FILE, {
                 onMessage: (line) => setOutput((prev) => [...prev, line]),
@@ -93,9 +102,15 @@ export const useCommands = () => {
             } catch (e) {
               setOutput((prev) => [
                 ...prev,
-                `Failed to open notebook: ${e instanceof Error ? e.message : String(e)}`,
+                `Failed to open notebook: ${e instanceof Error ? (e as Error).message : String(e)}`,
               ]);
             }
+          } else {
+            setOutput((prev) => [
+              ...prev,
+              `✅ Dashboard generated: \`${DASHBOARD_FILE}\`.`,
+              `Run /start-dashboard to launch the server.`,
+            ]);
           }
         }
 
@@ -190,6 +205,14 @@ export const useCommands = () => {
       }
 
       if (command === "/fix") {
+        const mode = readGenerationModeFromConfig();
+        if (mode !== "notebook") {
+          setOutput((prev) => [
+            ...prev,
+            "The /fix command is only available in notebook mode at the moment.",
+          ]);
+          return;
+        }
         const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
         try {
           if (!existsSync(notebookPath)) {
@@ -230,71 +253,15 @@ export const useCommands = () => {
           }
 
           const tracebackText = latestTraceback.join("\n");
-          executePrompt(`fix this error: ${tracebackText}`, { includeGuidance: false });
+          executePrompt(`fix this error in the notebook ${NOTEBOOK_FILE}: ${tracebackText}`, {
+            useRawPrompt: true,
+          });
         } catch (error) {
           setOutput((prev) => [
             ...prev,
             `Failed to read or parse \`${NOTEBOOK_FILE}\`: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
-        return;
-      }
-
-      if (command === "/dashboard") {
-        // Remove any existing dashboard file first
-        try {
-          const dashboardPath = path.resolve(getInvocationCwd(), DASHBOARD_FILE);
-          if (existsSync(dashboardPath)) {
-            unlinkSync(dashboardPath);
-            setOutput((prev) => [
-              ...prev,
-              `Removed existing \`${DASHBOARD_FILE}\`. It will be regenerated now.`,
-            ]);
-          }
-        } catch (error) {
-          setOutput((prev) => [
-            ...prev,
-            `Warning: Failed to remove existing \`${DASHBOARD_FILE}\`: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          ]);
-        }
-
-        const dashboardPrompt = `Convert the notebook \`@${NOTEBOOK_FILE}\` into a professional Streamlit dashboard with this layout:
-
-## Layout Structure
-- **Header**: Title and Date
-    - Title: left
-    - Date: right
-- **KPI Row**: (if the notebook contains any KPIs)
-    - Use red for negative trends and green for positive trend
-- **Charts Grid**:
-    - Use the four best charts from the notebook
-- **Bottom Row**: 
-   - Add summary or conclusion of the notebook if available
-
-## Key Requirements
-- Generate the code in a single file called \`${DASHBOARD_FILE}\`
-- Use Plotly for all charts
-- Professional styling with trend arrows/colors
-- Use uniform card heights for each row
-- Show two decimal places for each trend indicator`;
-
-        const response = await executePrompt(dashboardPrompt, {
-          openNotebookOnSuccess: false,
-          echoPrompt: false,
-          useRawPrompt: true,
-        });
-
-        if (!response.success) {
-          return;
-        }
-
-        setOutput((prev) => [
-          ...prev,
-          `✅ Dashboard generated: \`${DASHBOARD_FILE}\`.`,
-          `Run /start-dashboard to launch the server.`,
-        ]);
         return;
       }
 
@@ -414,6 +381,56 @@ export const useCommands = () => {
         return;
       }
 
+      if (command.startsWith("/mode")) {
+        const [, arg] = command.split(/\s+/, 2);
+        const currentMode = readGenerationModeFromConfig();
+        if (!arg) {
+          setOutput((prev) => [
+            ...prev,
+            `Current generation mode: ${currentMode}`,
+            "Available modes:",
+            "1. notebook",
+            "2. dashboard",
+            "Use: /mode <notebook|dashboard>",
+          ]);
+          return;
+        }
+        const normalized = arg.trim().toLowerCase();
+        if (!["notebook", "dashboard"].includes(normalized)) {
+          setOutput((prev) => [...prev, `Unknown mode: ${arg}`, "Use one of: notebook, dashboard"]);
+          return;
+        }
+        try {
+          // If switching, ask for conversion
+          const nextMode = normalized as "notebook" | "dashboard";
+          if (nextMode === currentMode) {
+            setOutput((prev) => [...prev, `Mode already set to: ${currentMode}`]);
+            return;
+          }
+          writeGenerationModeToConfig(nextMode);
+          const now = readGenerationModeFromConfig();
+          setOutput((prev) => [...prev, `✅ Mode set to: ${now}`]);
+
+          // Decide on conversion
+          const cwd = getInvocationCwd();
+          const notebookExists = existsSync(path.resolve(cwd, NOTEBOOK_FILE));
+          const dashboardExists = existsSync(path.resolve(cwd, DASHBOARD_FILE));
+          if (now === "dashboard" && notebookExists) {
+            setPendingConversion("notebook-to-dashboard");
+            setRunningCommand("confirm");
+          } else if (now === "notebook" && dashboardExists) {
+            setPendingConversion("dashboard-to-notebook");
+            setRunningCommand("confirm");
+          }
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Failed to set mode: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
+        return;
+      }
+
       if (command === "/examples") {
         setRunningCommand("examples");
         return;
@@ -435,6 +452,51 @@ export const useCommands = () => {
     setRunningCommand(null);
   }, []);
 
+  const confirmPendingConversion = useCallback(async () => {
+    if (!pendingConversion) {
+      setRunningCommand(null);
+      return;
+    }
+    try {
+      if (pendingConversion === "notebook-to-dashboard") {
+        const response = await executePrompt(buildNotebookToDashboardPrompt(), {
+          echoPrompt: false,
+          useRawPrompt: true,
+        });
+        if (response.success) {
+          setOutput((prev) => [
+            ...prev,
+            `✅ Dashboard generated: \`${DASHBOARD_FILE}\`.`,
+            `Run /start-dashboard to launch the server.`,
+          ]);
+        } else {
+          setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
+        }
+      } else if (pendingConversion === "dashboard-to-notebook") {
+        const response = await executePrompt(buildDashboardToNotebookPrompt(), {
+          echoPrompt: false,
+          useRawPrompt: true,
+        });
+        if (response.success) {
+          setOutput((prev) => [...prev, `✅ Notebook generated: \`${NOTEBOOK_FILE}\`.`]);
+        } else {
+          setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
+        }
+      }
+    } finally {
+      setPendingConversion(null);
+      setRunningCommand(null);
+    }
+  }, [pendingConversion, executePrompt]);
+
+  const cancelPendingConversion = useCallback(() => {
+    if (pendingConversion) {
+      setOutput((prev) => [...prev, "Conversion cancelled."]);
+    }
+    setPendingConversion(null);
+    setRunningCommand(null);
+  }, [pendingConversion]);
+
   return {
     output,
     handleCommand,
@@ -442,5 +504,8 @@ export const useCommands = () => {
     abortExecution,
     appendOutput,
     runningCommand,
+    confirmPendingConversion,
+    cancelPendingConversion,
+    pendingConversion,
   };
 };

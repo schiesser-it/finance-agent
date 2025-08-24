@@ -3,6 +3,7 @@ import type { Key } from "ink";
 import React, { useCallback, useEffect } from "react";
 
 import CommandCompletions from "./components/CommandCompletions.js";
+import ConfirmPrompt from "./components/ConfirmPrompt.js";
 import ExamplesList from "./components/ExamplesList.js";
 import ExecutingPrompt from "./components/ExecutingPrompt.js";
 import FileSearch from "./components/FileSearch.js";
@@ -39,8 +40,17 @@ const MainUI: React.FC = () => {
     handleExampleSelection,
   } = useExamples();
 
-  const { output, handleCommand, executePrompt, abortExecution, appendOutput, runningCommand } =
-    useCommands();
+  const {
+    output,
+    handleCommand,
+    executePrompt,
+    abortExecution,
+    appendOutput,
+    runningCommand,
+    confirmPendingConversion,
+    cancelPendingConversion,
+    pendingConversion,
+  } = useCommands();
 
   const {
     input,
@@ -237,6 +247,18 @@ const MainUI: React.FC = () => {
           abortExecution();
           appendOutput("Login cancelled.");
         }}
+      />
+      <ConfirmPrompt
+        visible={runningCommand === "confirm"}
+        message={
+          pendingConversion === "notebook-to-dashboard"
+            ? `Convert existing analysis.ipynb to dashboard.py now?`
+            : pendingConversion === "dashboard-to-notebook"
+              ? `Convert existing dashboard.py to analysis.ipynb now?`
+              : ""
+        }
+        onConfirm={confirmPendingConversion}
+        onCancel={cancelPendingConversion}
       />
       {runningCommand === "examples" && (
         <ExamplesList examples={examples} selectedIndex={selectedExampleIndex} />

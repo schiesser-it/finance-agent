@@ -184,3 +184,36 @@ export function readThinkingModeFromConfig(): ThinkingMode {
     return DEFAULT_THINKING_MODE;
   }
 }
+
+// ---- Generation mode helpers ----
+// TODO: need to use a structured format for config instead one file for each setting
+
+export type GenerationMode = "notebook" | "dashboard";
+
+export const DEFAULT_GENERATION_MODE: GenerationMode = "notebook";
+
+export function getGenerationModeConfigFilePath(): string {
+  return path.join(getConfigDir(), "mode");
+}
+
+export function writeGenerationModeToConfig(mode: GenerationMode): void {
+  ensureConfigDir();
+  const filePath = getGenerationModeConfigFilePath();
+  writeFileSync(filePath, `${mode}\n`, { encoding: "utf-8" });
+}
+
+export function readGenerationModeFromConfig(): GenerationMode {
+  try {
+    const filePath = getGenerationModeConfigFilePath();
+    if (!existsSync(filePath)) {
+      return DEFAULT_GENERATION_MODE;
+    }
+    const raw = readFileSync(filePath, { encoding: "utf-8" }).trim().toLowerCase();
+    if (raw === "notebook" || raw === "dashboard") {
+      return raw as GenerationMode;
+    }
+    return DEFAULT_GENERATION_MODE;
+  } catch {
+    return DEFAULT_GENERATION_MODE;
+  }
+}
