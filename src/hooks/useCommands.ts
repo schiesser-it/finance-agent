@@ -86,7 +86,7 @@ export const useCommands = () => {
           } else {
             setOutput((prev) => [...prev, `Error: ${response.error}`]);
           }
-        } else if (response.success && options?.useRawPrompt !== true) {
+        } else if (response.success) {
           const mode = readGenerationModeFromConfig();
           await runProcess(mode, {
             onMessage: (line) => setOutput((prev) => [...prev, line]),
@@ -344,11 +344,6 @@ export const useCommands = () => {
             setPendingConversion("dashboard-to-notebook");
             setRunningCommand("confirm");
           }
-
-          // Ensure respective servers are running for the selected mode
-          await runProcess(now, {
-            onMessage: (line) => setOutput((prev) => [...prev, line]),
-          });
         } catch (error) {
           setOutput((prev) => [
             ...prev,
@@ -392,9 +387,6 @@ export const useCommands = () => {
         });
         if (response.success) {
           setOutput((prev) => [...prev, `✅ Dashboard generated: \`${DASHBOARD_FILE}\`.`]);
-          await runProcess("dashboard", {
-            onMessage: (line) => setOutput((prev) => [...prev, line]),
-          });
         } else {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
         }
@@ -405,9 +397,6 @@ export const useCommands = () => {
         });
         if (response.success) {
           setOutput((prev) => [...prev, `✅ Notebook generated: \`${NOTEBOOK_FILE}\`.`]);
-          await runProcess("notebook", {
-            onMessage: (line) => setOutput((prev) => [...prev, line]),
-          });
         } else {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
         }
