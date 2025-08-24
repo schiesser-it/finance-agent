@@ -479,6 +479,16 @@ export const useCommands = () => {
         });
         if (response.success) {
           setOutput((prev) => [...prev, `✅ Notebook generated: \`${NOTEBOOK_FILE}\`.`]);
+          try {
+            await openNotebookInBrowser(NOTEBOOK_FILE, {
+              onMessage: (line) => setOutput((prev) => [...prev, line]),
+            });
+          } catch (e) {
+            setOutput((prev) => [
+              ...prev,
+              `Failed to open notebook: ${e instanceof Error ? (e as Error).message : String(e)}`,
+            ]);
+          }
         } else {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
         }
