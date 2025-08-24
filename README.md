@@ -35,7 +35,6 @@ Then, you can run the tool by calling `finagent`.
 ## Jupyter server
 
 The Jupyter server is installed in a virtual environment and runs in the background on startup and shutdowns automatically on exit.
-You can restart it manually anytime with the `/restart` command.
 The virtual environment is located in the `$HOME/.finance-agent` directory.
 
 To update the Jupyter server, use the `/update` command.

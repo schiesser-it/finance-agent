@@ -54,7 +54,7 @@ FinAgent is an interactive financial analysis CLI tool that generates Jupyter No
 
 - **claudeService.ts** - Interfaces with @anthropic-ai/claude-code SDK for AI interactions
 - **jupyterService.ts** - Manages Jupyter Notebook server lifecycle (start/stop/status)
-- **commands.ts** - Defines available slash commands (/help, /examples, /restart, etc.)
+- **commands.ts** - Defines available slash commands (/help, /examples, etc.)
 - **config.ts** - Handles configuration management and API key storage
 - **prompts.ts** - Contains system prompts and prompt building logic
 
@@ -94,7 +94,6 @@ Available slash commands:
 
 - `/help` - Show available commands
 - `/examples` - Show example prompts
-- `/restart` - Restart Jupyter server
 - `/update` - Update Jupyter server
 - `/reset` - Delete notebook to start fresh
 - `/fix` - Analyze last error and propose fix
