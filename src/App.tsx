@@ -47,9 +47,9 @@ const MainUI: React.FC = () => {
     abortExecution,
     appendOutput,
     runningCommand,
-    confirmPendingConversion,
-    cancelPendingConversion,
-    pendingConversion,
+    confirmPendingAction,
+    cancelPendingAction,
+    pendingAction,
   } = useCommands();
 
   const {
@@ -251,14 +251,16 @@ const MainUI: React.FC = () => {
       <ConfirmPrompt
         visible={runningCommand === "confirm"}
         message={
-          pendingConversion === "notebook-to-dashboard"
+          pendingAction === "notebook-to-dashboard"
             ? `Convert existing analysis.ipynb to dashboard.py now?`
-            : pendingConversion === "dashboard-to-notebook"
+            : pendingAction === "dashboard-to-notebook"
               ? `Convert existing dashboard.py to analysis.ipynb now?`
-              : ""
+              : pendingAction === "fix-dashboard-error"
+                ? `Dashboard error detected. Attempt an automatic fix now?`
+                : ""
         }
-        onConfirm={confirmPendingConversion}
-        onCancel={cancelPendingConversion}
+        onConfirm={confirmPendingAction}
+        onCancel={cancelPendingAction}
       />
       {runningCommand === "examples" && (
         <ExamplesList examples={examples} selectedIndex={selectedExampleIndex} />

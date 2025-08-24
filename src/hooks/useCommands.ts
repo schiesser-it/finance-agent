@@ -29,13 +29,17 @@ import { runProcess } from "../services/runner.js";
 import { getDefaultPackages, updateVenvPackages } from "../services/venv.js";
 
 type RunningCommand = "execute" | "login" | "examples" | "confirm" | null;
+type PendingAction =
+  | "notebook-to-dashboard"
+  | "dashboard-to-notebook"
+  | "fix-dashboard-error"
+  | null;
 
 export const useCommands = () => {
   const [output, setOutput] = useState<string[]>([]);
   const [runningCommand, setRunningCommand] = useState<RunningCommand>(null);
-  const [pendingConversion, setPendingConversion] = useState<
-    "notebook-to-dashboard" | "dashboard-to-notebook" | null
-  >(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [pendingTraceback, setPendingTraceback] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const { exit } = useApp();
@@ -90,6 +94,13 @@ export const useCommands = () => {
           const mode = readGenerationModeFromConfig();
           await runProcess(mode, {
             onMessage: (line) => setOutput((prev) => [...prev, line]),
+            onTraceback: (trace) => {
+              if (mode === "dashboard") {
+                setPendingTraceback(trace);
+                setPendingAction("fix-dashboard-error");
+                setRunningCommand("confirm");
+              }
+            },
           });
         }
 
@@ -338,10 +349,10 @@ export const useCommands = () => {
           const notebookExists = existsSync(path.resolve(cwd, NOTEBOOK_FILE));
           const dashboardExists = existsSync(path.resolve(cwd, DASHBOARD_FILE));
           if (now === "dashboard" && notebookExists) {
-            setPendingConversion("notebook-to-dashboard");
+            setPendingAction("notebook-to-dashboard");
             setRunningCommand("confirm");
           } else if (now === "notebook" && dashboardExists) {
-            setPendingConversion("dashboard-to-notebook");
+            setPendingAction("dashboard-to-notebook");
             setRunningCommand("confirm");
           }
         } catch (error) {
@@ -374,13 +385,13 @@ export const useCommands = () => {
     setRunningCommand(null);
   }, []);
 
-  const confirmPendingConversion = useCallback(async () => {
-    if (!pendingConversion) {
+  const confirmPendingAction = useCallback(async () => {
+    if (!pendingAction) {
       setRunningCommand(null);
       return;
     }
     try {
-      if (pendingConversion === "notebook-to-dashboard") {
+      if (pendingAction === "notebook-to-dashboard") {
         const response = await executePrompt(buildNotebookToDashboardPrompt(), {
           echoPrompt: false,
           useRawPrompt: true,
@@ -390,7 +401,7 @@ export const useCommands = () => {
         } else {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
         }
-      } else if (pendingConversion === "dashboard-to-notebook") {
+      } else if (pendingAction === "dashboard-to-notebook") {
         const response = await executePrompt(buildDashboardToNotebookPrompt(), {
           echoPrompt: false,
           useRawPrompt: true,
@@ -400,20 +411,31 @@ export const useCommands = () => {
         } else {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
         }
+      } else if (pendingAction === "fix-dashboard-error") {
+        const response = await executePrompt(
+          `fix this error in the ${DASHBOARD_FILE}: ${pendingTraceback}`,
+          {
+            useRawPrompt: true,
+          },
+        );
+        if (!response.success) {
+          setOutput((prev) => [...prev, `Fix failed: ${response.error ?? "Unknown error"}`]);
+        }
       }
     } finally {
-      setPendingConversion(null);
+      setPendingAction(null);
+      setPendingTraceback(null);
       setRunningCommand(null);
     }
-  }, [pendingConversion, executePrompt]);
+  }, [pendingAction, pendingTraceback, executePrompt]);
 
-  const cancelPendingConversion = useCallback(() => {
-    if (pendingConversion) {
+  const cancelPendingAction = useCallback(() => {
+    if (pendingAction) {
       setOutput((prev) => [...prev, "Conversion cancelled."]);
     }
-    setPendingConversion(null);
+    setPendingAction(null);
     setRunningCommand(null);
-  }, [pendingConversion]);
+  }, [pendingAction]);
 
   return {
     output,
@@ -422,8 +444,8 @@ export const useCommands = () => {
     abortExecution,
     appendOutput,
     runningCommand,
-    confirmPendingConversion,
-    cancelPendingConversion,
-    pendingConversion,
+    confirmPendingAction,
+    cancelPendingAction,
+    pendingAction,
   };
 };
