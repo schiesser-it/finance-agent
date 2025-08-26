@@ -6,7 +6,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { ClaudeService } from "../../services/claudeService";
 import * as config from "../../services/config";
-import * as jupyterService from "../../services/jupyterService";
+// Artifacts factory mock (uses a shared object captured by closure)
+const mockArtifact = {
+  mode: "notebook" as const,
+  fileName: "analysis.ipynb",
+  buildGeneratePrompt: vi.fn((p: string) => `ARTIFACT_PROMPT: ${p}`),
+  runProcess: vi.fn(async () => {}),
+  getFilePath: vi.fn(() => "/test/cwd/analysis.ipynb"),
+  fix: vi.fn(async () => {}),
+};
+vi.mock("../../services/artifacts/factory.js", () => {
+  const createArtifact = vi.fn(() => mockArtifact);
+  return { createArtifact };
+});
 import { useCommands } from "../useCommands";
 
 // Mock dependencies
@@ -16,15 +28,12 @@ vi.mock("ink", () => ({
 
 vi.mock("../../services/claudeService");
 vi.mock("../../services/config");
-vi.mock("../../services/jupyterService");
-vi.mock("../../services/dashboardService");
 vi.mock("../../services/venv");
 vi.mock("node:fs");
 vi.mock("node:path");
 
 const mockClaudeService = vi.mocked(ClaudeService);
 const mockConfig = vi.mocked(config);
-const mockJupyterService = vi.mocked(jupyterService);
 const mockFs = vi.mocked(fs);
 const mockPath = vi.mocked(path);
 
@@ -34,9 +43,16 @@ describe("useCommands", () => {
 
     // Default mocks
     mockConfig.getInvocationCwd.mockReturnValue("/test/cwd");
+    mockConfig.readGenerationModeFromConfig.mockReturnValue("notebook");
     mockPath.resolve.mockImplementation((...segments) => segments.join("/"));
     mockFs.existsSync.mockReturnValue(false);
-    mockJupyterService.openNotebookInBrowser.mockResolvedValue();
+    // reset artifact mocks
+    mockArtifact.mode = "notebook";
+    mockArtifact.fileName = "analysis.ipynb";
+    mockArtifact.buildGeneratePrompt = vi.fn((p: string) => `ARTIFACT_PROMPT: ${p}`);
+    mockArtifact.runProcess = vi.fn(async () => {});
+    mockArtifact.getFilePath = vi.fn(() => "/test/cwd/analysis.ipynb");
+    mockArtifact.fix = vi.fn(async () => {});
   });
 
   afterEach(() => {
@@ -57,8 +73,8 @@ describe("useCommands", () => {
 
       const [promptArg, optionsArg] = mockClaudeService.executePrompt.mock.calls[0];
       expect(typeof promptArg).toBe("string");
-      // Validate key guidance components without relying on exact full string
-      expect(promptArg).toContain("create a jupyter notebook named analysis.ipynb.");
+      // Validates prompt is built via the Artifact
+      expect(promptArg).toContain("ARTIFACT_PROMPT: test prompt");
 
       expect(optionsArg).toEqual(
         expect.objectContaining({
@@ -105,6 +121,24 @@ describe("useCommands", () => {
 
       expect(result.current.output).toContain("Processing...");
       expect(result.current.output).toContain("Almost done...");
+    });
+
+    it("should not fail when opening artifact fails", async () => {
+      const mockResponse = { success: true };
+      mockClaudeService.executePrompt.mockResolvedValue(mockResponse);
+      // make runProcess throw
+      mockArtifact.runProcess = vi.fn(async () => {
+        throw new Error("open error");
+      });
+
+      const { result } = renderHook(() => useCommands());
+
+      await act(async () => {
+        const response = await result.current.executePrompt("test prompt");
+        expect(response).toEqual(mockResponse);
+      });
+
+      expect(result.current.output.some((l) => l.includes("Failed to open notebook"))).toBe(true);
     });
   });
 

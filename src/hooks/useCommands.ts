@@ -1,9 +1,11 @@
-import { existsSync, unlinkSync, readFileSync } from "node:fs";
-import path from "node:path";
+import { existsSync, unlinkSync } from "node:fs";
 
 import { useApp } from "ink";
 import { useState, useCallback, useRef, useMemo } from "react";
 
+import { buildConversionPrompt } from "../services/artifacts/converter.js";
+import { createArtifact } from "../services/artifacts/factory.js";
+import type { Artifact } from "../services/artifacts/types.js";
 import { ClaudeService } from "../services/claudeService.js";
 import type { ClaudeResponse } from "../services/claudeService.js";
 import { COMMANDS } from "../services/commands.js";
@@ -11,29 +13,24 @@ import {
   readSelectedModelFromConfig,
   resolveModelId,
   writeSelectedModelToConfig,
-  getInvocationCwd,
   readThinkingModeFromConfig,
   writeThinkingModeToConfig,
+  readGenerationModeFromConfig,
+  writeGenerationModeToConfig,
+  GenerationMode,
 } from "../services/config.js";
-import { stopDashboard, isDashboardRunning, runDashboard } from "../services/dashboardService.js";
-import {
-  startServerInBackground,
-  stopServer,
-  isServerRunning,
-  openNotebookInBrowser,
-} from "../services/jupyterService.js";
-import {
-  buildPromptWithNotebookPrefix,
-  DASHBOARD_FILE,
-  NOTEBOOK_FILE,
-} from "../services/prompts.js";
-import { getDefaultPackages, isVenvReady, updateVenvPackages } from "../services/venv.js";
+import { getDefaultPackages, updateVenvPackages } from "../services/venv.js";
 
-type RunningCommand = "execute" | "login" | "examples" | null;
+type RunningCommand = "execute" | "login" | "examples" | "confirm" | null;
+type PendingAction =
+  | { kind: "convert"; from: GenerationMode; to: GenerationMode }
+  | { kind: "auto-fix-error" }
+  | null;
 
 export const useCommands = () => {
   const [output, setOutput] = useState<string[]>([]);
   const [runningCommand, setRunningCommand] = useState<RunningCommand>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const { exit } = useApp();
@@ -43,17 +40,22 @@ export const useCommands = () => {
     return COMMANDS.map((c) => `${c.name.padEnd(padWidth)} - ${c.description}`);
   }, []);
 
+  const [currentMode, setCurrentMode] = useState(readGenerationModeFromConfig());
+  const artifactRef = useRef<Artifact>(createArtifact(currentMode));
+  if (artifactRef.current.mode !== currentMode) {
+    artifactRef.current = createArtifact(currentMode);
+  }
+
   const executePrompt = useCallback(
     async (
       prompt: string,
       options?: {
-        includeGuidance?: boolean;
-        openNotebookOnSuccess?: boolean;
         echoPrompt?: boolean;
         useRawPrompt?: boolean;
       },
     ): Promise<ClaudeResponse> => {
-      if (runningCommand && runningCommand !== "examples") {
+      // Allow executePrompt to run from confirmation flow as well
+      if (runningCommand && runningCommand !== "examples" && runningCommand !== "confirm") {
         return { success: false, error: "Another command is already running" };
       }
 
@@ -63,9 +65,7 @@ export const useCommands = () => {
       }
       const calculatedPrompt = options?.useRawPrompt
         ? prompt
-        : buildPromptWithNotebookPrefix(prompt, {
-            includeGuidance: options?.includeGuidance ?? true,
-          });
+        : artifactRef.current.buildGeneratePrompt(prompt);
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
@@ -85,17 +85,20 @@ export const useCommands = () => {
             setOutput((prev) => [...prev, `Error: ${response.error}`]);
           }
         } else if (response.success) {
-          if (options?.openNotebookOnSuccess !== false) {
-            try {
-              await openNotebookInBrowser(NOTEBOOK_FILE, {
-                onMessage: (line) => setOutput((prev) => [...prev, line]),
-              });
-            } catch (e) {
-              setOutput((prev) => [
-                ...prev,
-                `Failed to open notebook: ${e instanceof Error ? e.message : String(e)}`,
-              ]);
-            }
+          const mode = currentMode;
+          try {
+            await artifactRef.current.runProcess({
+              onMessage: (line) => setOutput((prev) => [...prev, line]),
+              onTraceback: () => {
+                setPendingAction({ kind: "auto-fix-error" });
+                setRunningCommand("confirm");
+              },
+            });
+          } catch (e) {
+            setOutput((prev) => [
+              ...prev,
+              `Failed to open ${mode}: ${e instanceof Error ? e.message : String(e)}`,
+            ]);
           }
         }
 
@@ -116,7 +119,7 @@ export const useCommands = () => {
         abortControllerRef.current = null;
       }
     },
-    [runningCommand],
+    [runningCommand, currentMode],
   );
 
   const handleCommand = useCallback(
@@ -144,192 +147,42 @@ export const useCommands = () => {
         return;
       }
 
-      if (command === "/restart") {
-        if (!isVenvReady()) {
-          setOutput((prev) => [
-            ...prev,
-            "Environment not installed. Restart the app to set it up.",
-          ]);
-          return;
-        }
-        try {
-          if (isServerRunning()) {
-            await stopServer({ onMessage: (line) => setOutput((prev) => [...prev, line]) });
-          }
-          await startServerInBackground({
-            onMessage: (line) => setOutput((prev) => [...prev, line]),
-          });
-        } catch (error) {
-          setOutput((prev) => [
-            ...prev,
-            `Error restarting server: ${error instanceof Error ? error.message : String(error)}`,
-          ]);
-        }
-        return;
-      }
-
       if (command === "/reset") {
-        const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
+        const fileToDelete = artifactRef.current.fileName;
+        const filePath = artifactRef.current.getFilePath();
+
         try {
-          if (existsSync(notebookPath)) {
-            unlinkSync(notebookPath);
+          if (existsSync(filePath)) {
+            unlinkSync(filePath);
             setOutput((prev) => [
               ...prev,
-              `Removed \`${NOTEBOOK_FILE}\`. Next run will create a fresh notebook.`,
+              `Removed \`${fileToDelete}\`. Next run will create a fresh ${currentMode}.`,
             ]);
           } else {
-            setOutput((prev) => [...prev, `No \`${NOTEBOOK_FILE}\` found. Nothing to remove.`]);
+            setOutput((prev) => [...prev, `No \`${fileToDelete}\` found. Nothing to remove.`]);
           }
         } catch (error) {
           setOutput((prev) => [
             ...prev,
-            `Error removing \`${NOTEBOOK_FILE}\`: ${error instanceof Error ? error.message : String(error)}`,
+            `Error removing \`${fileToDelete}\`: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
         return;
       }
 
       if (command === "/fix") {
-        const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
         try {
-          if (!existsSync(notebookPath)) {
-            setOutput((prev) => [
-              ...prev,
-              `No \`${NOTEBOOK_FILE}\` found. Run a prompt first to generate the notebook.`,
-            ]);
-            return;
-          }
-
-          const notebookRaw = readFileSync(notebookPath, { encoding: "utf8" });
-          const notebookJson: unknown = JSON.parse(notebookRaw);
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          type NotebookCell = { outputs?: Array<any> };
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const cells: NotebookCell[] = Array.isArray((notebookJson as any)?.cells)
-            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ((notebookJson as any).cells as NotebookCell[])
-            : [];
-
-          let latestTraceback: string[] | null = null;
-          for (const cell of cells) {
-            const outputs = Array.isArray(cell.outputs) ? cell.outputs : [];
-            for (const output of outputs) {
-              if (output && output.output_type === "error" && Array.isArray(output.traceback)) {
-                latestTraceback = output.traceback as string[];
-              }
-            }
-          }
-
-          if (!latestTraceback || latestTraceback.length === 0) {
-            setOutput((prev) => [
-              ...prev,
-              "No error traceback found in the notebook. Did you save the notebook with error?",
-            ]);
-            return;
-          }
-
-          const tracebackText = latestTraceback.join("\n");
-          executePrompt(`fix this error: ${tracebackText}`, { includeGuidance: false });
-        } catch (error) {
-          setOutput((prev) => [
-            ...prev,
-            `Failed to read or parse \`${NOTEBOOK_FILE}\`: ${error instanceof Error ? error.message : String(error)}`,
-          ]);
-        }
-        return;
-      }
-
-      if (command === "/dashboard") {
-        // Remove any existing dashboard file first
-        try {
-          const dashboardPath = path.resolve(getInvocationCwd(), DASHBOARD_FILE);
-          if (existsSync(dashboardPath)) {
-            unlinkSync(dashboardPath);
-            setOutput((prev) => [
-              ...prev,
-              `Removed existing \`${DASHBOARD_FILE}\`. It will be regenerated now.`,
-            ]);
-          }
-        } catch (error) {
-          setOutput((prev) => [
-            ...prev,
-            `Warning: Failed to remove existing \`${DASHBOARD_FILE}\`: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          ]);
-        }
-
-        const dashboardPrompt = `Convert the notebook \`@${NOTEBOOK_FILE}\` into a professional Streamlit dashboard with this layout:
-
-## Layout Structure
-- **Header**: Title and Date
-    - Title: left
-    - Date: right
-- **KPI Row**: (if the notebook contains any KPIs)
-    - Use red for negative trends and green for positive trend
-- **Charts Grid**:
-    - Use the four best charts from the notebook
-- **Bottom Row**: 
-   - Add summary or conclusion of the notebook if available
-
-## Key Requirements
-- Generate the code in a single file called \`${DASHBOARD_FILE}\`
-- Use Plotly for all charts
-- Professional styling with trend arrows/colors
-- Use uniform card heights for each row
-- Show two decimal places for each trend indicator`;
-
-        const response = await executePrompt(dashboardPrompt, {
-          openNotebookOnSuccess: false,
-          echoPrompt: false,
-          useRawPrompt: true,
-        });
-
-        if (!response.success) {
-          return;
-        }
-
-        setOutput((prev) => [
-          ...prev,
-          `✅ Dashboard generated: \`${DASHBOARD_FILE}\`.`,
-          `Run /start-dashboard to launch the server.`,
-        ]);
-        return;
-      }
-
-      if (command === "/start-dashboard") {
-        try {
-          setOutput((prev) => [...prev, `▶ Running: streamlit run ${DASHBOARD_FILE}`]);
-          await runDashboard(DASHBOARD_FILE, {
-            onMessage: (line) => setOutput((prev) => [...prev, line]),
+          await artifactRef.current.fix(executePrompt, {
+            onMessage: (l) => setOutput((prev) => [...prev, l]),
           });
-          setOutput((prev) => [...prev, `Tip: Use /stop-dashboard to stop the server.`]);
         } catch (error) {
           setOutput((prev) => [
             ...prev,
-            `Error starting dashboard: ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to fix: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
         return;
       }
-
-      if (command === "/stop-dashboard") {
-        try {
-          if (!isDashboardRunning()) {
-            setOutput((prev) => [...prev, "No running dashboard found."]);
-            return;
-          }
-          await stopDashboard({ onMessage: (line) => setOutput((prev) => [...prev, line]) });
-        } catch (error) {
-          setOutput((prev) => [
-            ...prev,
-            `Error stopping dashboard: ${error instanceof Error ? error.message : String(error)}`,
-          ]);
-        }
-        return;
-      }
-
       if (command === "/quit") {
         exit();
         return;
@@ -414,6 +267,69 @@ export const useCommands = () => {
         return;
       }
 
+      if (command.startsWith("/mode")) {
+        const [, arg] = command.split(/\s+/, 2);
+        if (!arg) {
+          setOutput((prev) => [
+            ...prev,
+            `Current generation mode: ${currentMode}`,
+            "Available modes:",
+            "1. notebook",
+            "2. dashboard",
+            "Use: /mode <notebook|dashboard>",
+          ]);
+          return;
+        }
+        const nextMode: GenerationMode = arg.trim().toLowerCase() as GenerationMode;
+        if (!["notebook", "dashboard"].includes(nextMode)) {
+          setOutput((prev) => [...prev, `Unknown mode: ${arg}`, "Use one of: notebook, dashboard"]);
+          return;
+        }
+        try {
+          // If switching, ask for conversion
+          if (nextMode === currentMode) {
+            setOutput((prev) => [...prev, `Mode already set to: ${currentMode}`]);
+            return;
+          }
+          const currentArtifactExists = existsSync(artifactRef.current.getFilePath());
+          // Decide on conversion
+          if (currentArtifactExists) {
+            setPendingAction({ kind: "convert", from: currentMode, to: nextMode });
+            setRunningCommand("confirm");
+          }
+          writeGenerationModeToConfig(nextMode);
+          setCurrentMode(nextMode);
+          setOutput((prev) => [...prev, `✅ Mode set to: ${nextMode}`]);
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Failed to set mode: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
+        return;
+      }
+
+      if (command === "/open") {
+        const mode = currentMode;
+        try {
+          await artifactRef.current.runProcess({
+            onMessage: (line: string) => {
+              setOutput((prev) => [...prev, line]);
+            },
+          });
+          setOutput((prev) => [
+            ...prev,
+            `✅ ${mode === "notebook" ? "Notebook" : "Dashboard"} opened successfully.`,
+          ]);
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Failed to open ${mode}: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
+        return;
+      }
+
       if (command === "/examples") {
         setRunningCommand("examples");
         return;
@@ -421,7 +337,7 @@ export const useCommands = () => {
 
       setOutput((prev) => [...prev, "Unknown command. Type /help for available commands."]);
     },
-    [exit, availableCommands, executePrompt],
+    [exit, availableCommands, executePrompt, currentMode],
   );
 
   const appendOutput = useCallback((lines: string | string[]) => {
@@ -435,6 +351,66 @@ export const useCommands = () => {
     setRunningCommand(null);
   }, []);
 
+  const confirmPendingAction = useCallback(async () => {
+    if (!pendingAction) {
+      setRunningCommand(null);
+      return;
+    }
+    try {
+      if (pendingAction && pendingAction.kind === "convert") {
+        // Ensure destination file does not exist before converting
+        try {
+          const destinationArtifact = createArtifact(pendingAction.to);
+          const destinationPath = destinationArtifact.getFilePath();
+          if (existsSync(destinationPath)) {
+            unlinkSync(destinationPath);
+            setOutput((prev) => [
+              ...prev,
+              `Removed existing \`${destinationArtifact.fileName}\` before conversion.`,
+            ]);
+          }
+        } catch (e) {
+          setOutput((prev) => [
+            ...prev,
+            `Warning: Failed to ensure clean destination before conversion: ${
+              e instanceof Error ? e.message : String(e)
+            }`,
+          ]);
+        }
+        const response = await executePrompt(
+          buildConversionPrompt(pendingAction.from, pendingAction.to),
+          {
+            echoPrompt: false,
+            useRawPrompt: true,
+          },
+        );
+        if (response.success) {
+          setOutput((prev) => [
+            ...prev,
+            `✅ Converted ${pendingAction.from} to ${pendingAction.to}.`,
+          ]);
+        } else {
+          setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
+        }
+      } else if (pendingAction && pendingAction.kind === "auto-fix-error") {
+        await artifactRef.current.fix(executePrompt, {
+          onMessage: (l) => setOutput((prev) => [...prev, l]),
+        });
+      }
+    } finally {
+      setPendingAction(null);
+      setRunningCommand(null);
+    }
+  }, [pendingAction, executePrompt]);
+
+  const cancelPendingAction = useCallback(() => {
+    if (pendingAction) {
+      setOutput((prev) => [...prev, "Conversion cancelled."]);
+    }
+    setPendingAction(null);
+    setRunningCommand(null);
+  }, [pendingAction]);
+
   return {
     output,
     handleCommand,
@@ -442,5 +418,8 @@ export const useCommands = () => {
     abortExecution,
     appendOutput,
     runningCommand,
+    confirmPendingAction,
+    cancelPendingAction,
+    pendingAction,
   };
 };

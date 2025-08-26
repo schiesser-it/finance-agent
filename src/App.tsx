@@ -1,8 +1,9 @@
 import { Box, useInput, useApp, Text } from "ink";
 import type { Key } from "ink";
-import React, { useCallback, useEffect } from "react";
+import React, { useEffect } from "react";
 
 import CommandCompletions from "./components/CommandCompletions.js";
+import ConfirmPrompt from "./components/ConfirmPrompt.js";
 import ExamplesList from "./components/ExamplesList.js";
 import ExecutingPrompt from "./components/ExecutingPrompt.js";
 import FileSearch from "./components/FileSearch.js";
@@ -16,7 +17,7 @@ import { useExamples } from "./hooks/useExamples.js";
 import { useFileSearch } from "./hooks/useFileSearch.js";
 import { useInputState } from "./hooks/useInput.js";
 import { setAnthropicApiKeyForSessionAndPersist } from "./services/config.js";
-import { isServerRunning, startServerInBackground, stopServer } from "./services/jupyterService.js";
+import { stopAllManagedProcesses } from "./services/processLifecycle.js";
 
 const MainUI: React.FC = () => {
   const { exit } = useApp();
@@ -39,8 +40,17 @@ const MainUI: React.FC = () => {
     handleExampleSelection,
   } = useExamples();
 
-  const { output, handleCommand, executePrompt, abortExecution, appendOutput, runningCommand } =
-    useCommands();
+  const {
+    output,
+    handleCommand,
+    executePrompt,
+    abortExecution,
+    appendOutput,
+    runningCommand,
+    confirmPendingAction,
+    cancelPendingAction,
+    pendingAction,
+  } = useCommands();
 
   const {
     input,
@@ -238,6 +248,18 @@ const MainUI: React.FC = () => {
           appendOutput("Login cancelled.");
         }}
       />
+      <ConfirmPrompt
+        visible={runningCommand === "confirm"}
+        message={
+          pendingAction && pendingAction.kind === "convert"
+            ? `Convert existing ${pendingAction.from} to ${pendingAction.to} now?`
+            : pendingAction && pendingAction.kind === "auto-fix-error"
+              ? `Error detected. Attempt an automatic fix now?`
+              : ""
+        }
+        onConfirm={confirmPendingAction}
+        onCancel={cancelPendingAction}
+      />
       {runningCommand === "examples" && (
         <ExamplesList examples={examples} selectedIndex={selectedExampleIndex} />
       )}
@@ -251,25 +273,23 @@ const MainUI: React.FC = () => {
 };
 
 const App: React.FC = () => {
-  const handleReady = useCallback(async () => {
-    try {
-      if (!isServerRunning()) {
-        await startServerInBackground();
-      }
-    } catch {
-      // best-effort startup; ignore errors here to avoid blocking the UI
-    }
-  }, []);
-
   useEffect(() => {
     return () => {
       // best-effort shutdown on app exit
-      void stopServer();
+      void stopAllManagedProcesses({
+        onMessage: (line: string) => {
+          console.log(line);
+        },
+      });
     };
   }, []);
 
   return (
-    <VenvSetupGate onReady={handleReady}>
+    <VenvSetupGate
+      onReady={() => {
+        stopAllManagedProcesses();
+      }}
+    >
       <MainUI />
     </VenvSetupGate>
   );

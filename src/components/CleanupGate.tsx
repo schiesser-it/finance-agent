@@ -1,29 +1,30 @@
 import { existsSync } from "node:fs";
-import path from "node:path";
 
 import { Box, Text } from "ink";
 import React, { useEffect, useState } from "react";
 
-import { getInvocationCwd } from "../services/config.js";
-import { NOTEBOOK_FILE } from "../services/prompts.js";
+import { createArtifact } from "../services/artifacts/factory.js";
+import { readGenerationModeFromConfig } from "../services/config.js";
 
-interface NotebookCleanupGateProps {
+interface CleanupGateProps {
   children?: React.ReactNode;
 }
 
-const NotebookCleanupGate: React.FC<NotebookCleanupGateProps> = ({ children }) => {
+const CleanupGate: React.FC<CleanupGateProps> = ({ children }) => {
   const [exists, setExists] = useState<boolean | null>(null);
   const [blinkOn, setBlinkOn] = useState<boolean>(true);
-
-  const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
+  const [currentMode, setCurrentMode] = useState<string>("notebook");
 
   useEffect(() => {
+    const mode = readGenerationModeFromConfig();
+    const file = createArtifact(mode).getFilePath();
+    setCurrentMode(mode);
+
     try {
-      setExists(existsSync(notebookPath));
+      setExists(existsSync(file));
     } catch {
       setExists(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -31,6 +32,11 @@ const NotebookCleanupGate: React.FC<NotebookCleanupGateProps> = ({ children }) =
     const interval = setInterval(() => setBlinkOn((v) => !v), 700);
     return () => clearInterval(interval);
   }, [exists]);
+
+  const getWarningMessage = () => {
+    const artifactType = currentMode === "notebook" ? "Jupyter notebook" : "dashboard";
+    return `⚠️  A ${artifactType} file already exists. \n   Run /reset to delete it and start fresh or /open to open it.`;
+  };
 
   return (
     <>
@@ -41,9 +47,7 @@ const NotebookCleanupGate: React.FC<NotebookCleanupGateProps> = ({ children }) =
             color={blinkOn ? "black" : undefined}
             dimColor={!blinkOn}
           >
-            {
-              "⚠️  A Jupyter notebook file already exists. \n   Run /reset to delete it and start fresh."
-            }
+            {getWarningMessage()}
           </Text>
         </Box>
       ) : null}
@@ -52,4 +56,4 @@ const NotebookCleanupGate: React.FC<NotebookCleanupGateProps> = ({ children }) =
   );
 };
 
-export default NotebookCleanupGate;
+export default CleanupGate;

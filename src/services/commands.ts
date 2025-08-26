@@ -7,16 +7,12 @@ export type CommandSpec = {
 export const COMMANDS: CommandSpec[] = [
   { name: "/help", description: "Show available commands" },
   { name: "/examples", description: "Show example prompts" },
-  { name: "/restart", description: "Restart Jupyter Notebook server" },
-  { name: "/update", description: "Update the Jupyter Notebook server" },
-  { name: "/reset", description: "Delete the notebook to start fresh" },
-  { name: "/fix", description: "Analyze last error in notebook and propose a fix" },
+  { name: "/update", description: "Update the Python environment" },
   {
-    name: "/dashboard",
-    description: "Generate the a dashboard file (overwrites existing)",
+    name: "/reset",
+    description: "Delete the current artifact (notebook or dashboard) to start fresh",
   },
-  { name: "/start-dashboard", description: "Start the dashboard server" },
-  { name: "/stop-dashboard", description: "Stop the running dashboard server" },
+  { name: "/fix", description: "Analyze last error in notebook and propose a fix" },
   { name: "/login", description: "Enter your Anthropic API key" },
   {
     name: "/model",
@@ -28,5 +24,11 @@ export const COMMANDS: CommandSpec[] = [
     description: "Show or set thinking mode (none|normal|hard|harder)",
     takesArgument: true,
   },
+  {
+    name: "/mode",
+    description: "Show or set generation mode (notebook|dashboard)",
+    takesArgument: true,
+  },
+  { name: "/open", description: "Open the current artifact (notebook or dashboard) based on mode" },
   { name: "/quit", description: "Exit the application" },
 ];
