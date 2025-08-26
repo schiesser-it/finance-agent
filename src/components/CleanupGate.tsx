@@ -4,8 +4,9 @@ import path from "node:path";
 import { Box, Text } from "ink";
 import React, { useEffect, useState } from "react";
 
+import { DASHBOARD_FILE } from "../services/artifacts/DashboardArtifact.js";
+import { NOTEBOOK_FILE } from "../services/artifacts/NotebookArtifact.js";
 import { getInvocationCwd, readGenerationModeFromConfig } from "../services/config.js";
-import { NOTEBOOK_FILE, DASHBOARD_FILE } from "../services/prompts.js";
 
 interface CleanupGateProps {
   children?: React.ReactNode;

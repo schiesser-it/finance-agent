@@ -4,6 +4,11 @@ import path from "node:path";
 import { useApp } from "ink";
 import { useState, useCallback, useRef, useMemo } from "react";
 
+import { buildConversionPrompt } from "../services/artifacts/converter.js";
+import { DASHBOARD_FILE } from "../services/artifacts/DashboardArtifact.js";
+import { createArtifact } from "../services/artifacts/factory.js";
+import { NOTEBOOK_FILE } from "../services/artifacts/NotebookArtifact.js";
+import type { Artifact } from "../services/artifacts/types.js";
 import { ClaudeService } from "../services/claudeService.js";
 import type { ClaudeResponse } from "../services/claudeService.js";
 import { COMMANDS } from "../services/commands.js";
@@ -17,15 +22,6 @@ import {
   readGenerationModeFromConfig,
   writeGenerationModeToConfig,
 } from "../services/config.js";
-import {
-  buildPromptWithNotebookPrefix,
-  DASHBOARD_FILE,
-  NOTEBOOK_FILE,
-  buildPromptWithDashboardPrefix,
-  buildNotebookToDashboardPrompt,
-  buildDashboardToNotebookPrompt,
-} from "../services/prompts.js";
-import { runProcess } from "../services/runner.js";
 import { getDefaultPackages, updateVenvPackages } from "../services/venv.js";
 
 type RunningCommand = "execute" | "login" | "examples" | "confirm" | null;
@@ -49,6 +45,12 @@ export const useCommands = () => {
     return COMMANDS.map((c) => `${c.name.padEnd(padWidth)} - ${c.description}`);
   }, []);
 
+  const [currentMode, setCurrentMode] = useState(readGenerationModeFromConfig());
+  const artifactRef = useRef<Artifact>(createArtifact(currentMode));
+  if (artifactRef.current.mode !== currentMode) {
+    artifactRef.current = createArtifact(currentMode);
+  }
+
   const executePrompt = useCallback(
     async (
       prompt: string,
@@ -66,12 +68,9 @@ export const useCommands = () => {
       if (options?.echoPrompt !== false) {
         setOutput((prev) => [...prev, `> ${prompt}`]);
       }
-      const mode = readGenerationModeFromConfig();
       const calculatedPrompt = options?.useRawPrompt
         ? prompt
-        : mode === "dashboard"
-          ? buildPromptWithDashboardPrefix(prompt)
-          : buildPromptWithNotebookPrefix(prompt);
+        : artifactRef.current.buildGeneratePrompt(prompt);
 
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
@@ -91,17 +90,24 @@ export const useCommands = () => {
             setOutput((prev) => [...prev, `Error: ${response.error}`]);
           }
         } else if (response.success) {
-          const mode = readGenerationModeFromConfig();
-          await runProcess(mode, {
-            onMessage: (line) => setOutput((prev) => [...prev, line]),
-            onTraceback: (trace) => {
-              if (mode === "dashboard") {
-                setPendingTraceback(trace);
-                setPendingAction("fix-dashboard-error");
-                setRunningCommand("confirm");
-              }
-            },
-          });
+          const mode = currentMode;
+          try {
+            await artifactRef.current.runProcess({
+              onMessage: (line) => setOutput((prev) => [...prev, line]),
+              onTraceback: (trace) => {
+                if (mode === "dashboard") {
+                  setPendingTraceback(trace);
+                  setPendingAction("fix-dashboard-error");
+                  setRunningCommand("confirm");
+                }
+              },
+            });
+          } catch (e) {
+            setOutput((prev) => [
+              ...prev,
+              `Failed to open ${mode}: ${e instanceof Error ? e.message : String(e)}`,
+            ]);
+          }
         }
 
         return response;
@@ -121,7 +127,7 @@ export const useCommands = () => {
         abortControllerRef.current = null;
       }
     },
-    [runningCommand],
+    [runningCommand, currentMode],
   );
 
   const handleCommand = useCallback(
@@ -150,7 +156,7 @@ export const useCommands = () => {
       }
 
       if (command === "/reset") {
-        const mode = readGenerationModeFromConfig();
+        const mode = currentMode;
         const fileToDelete = mode === "notebook" ? NOTEBOOK_FILE : DASHBOARD_FILE;
         const filePath = path.resolve(getInvocationCwd(), fileToDelete);
 
@@ -174,7 +180,7 @@ export const useCommands = () => {
       }
 
       if (command === "/fix") {
-        const mode = readGenerationModeFromConfig();
+        const mode = currentMode;
         if (mode !== "notebook") {
           setOutput((prev) => [
             ...prev,
@@ -344,7 +350,8 @@ export const useCommands = () => {
             return;
           }
           writeGenerationModeToConfig(nextMode);
-          const now = readGenerationModeFromConfig();
+          setCurrentMode(nextMode);
+          const now = nextMode;
           setOutput((prev) => [...prev, `✅ Mode set to: ${now}`]);
 
           // Decide on conversion
@@ -368,9 +375,9 @@ export const useCommands = () => {
       }
 
       if (command === "/open") {
-        const mode = readGenerationModeFromConfig();
+        const mode = currentMode;
         try {
-          await runProcess(mode, {
+          await artifactRef.current.runProcess({
             onMessage: (line: string) => {
               setOutput((prev) => [...prev, line]);
             },
@@ -395,7 +402,7 @@ export const useCommands = () => {
 
       setOutput((prev) => [...prev, "Unknown command. Type /help for available commands."]);
     },
-    [exit, availableCommands, executePrompt],
+    [exit, availableCommands, executePrompt, currentMode],
   );
 
   const appendOutput = useCallback((lines: string | string[]) => {
@@ -416,7 +423,7 @@ export const useCommands = () => {
     }
     try {
       if (pendingAction === "notebook-to-dashboard") {
-        const response = await executePrompt(buildNotebookToDashboardPrompt(), {
+        const response = await executePrompt(buildConversionPrompt("notebook", "dashboard"), {
           echoPrompt: false,
           useRawPrompt: true,
         });
@@ -426,7 +433,7 @@ export const useCommands = () => {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
         }
       } else if (pendingAction === "dashboard-to-notebook") {
-        const response = await executePrompt(buildDashboardToNotebookPrompt(), {
+        const response = await executePrompt(buildConversionPrompt("dashboard", "notebook"), {
           echoPrompt: false,
           useRawPrompt: true,
         });
