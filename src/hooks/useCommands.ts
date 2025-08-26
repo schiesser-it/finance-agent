@@ -24,7 +24,10 @@ import {
 import { getDefaultPackages, updateVenvPackages } from "../services/venv.js";
 
 type RunningCommand = "execute" | "login" | "examples" | "confirm" | null;
-type PendingAction = "notebook-to-dashboard" | "dashboard-to-notebook" | "auto-fix-error" | null;
+type PendingAction =
+  | { kind: "convert"; from: GenerationMode; to: GenerationMode }
+  | { kind: "auto-fix-error" }
+  | null;
 
 export const useCommands = () => {
   const [output, setOutput] = useState<string[]>([]);
@@ -89,7 +92,7 @@ export const useCommands = () => {
             await artifactRef.current.runProcess({
               onMessage: (line) => setOutput((prev) => [...prev, line]),
               onTraceback: () => {
-                setPendingAction("auto-fix-error");
+                setPendingAction({ kind: "auto-fix-error" });
                 setRunningCommand("confirm");
               },
             });
@@ -291,18 +294,14 @@ export const useCommands = () => {
             return;
           }
           const currentArtifactExists = existsSync(artifactRef.current.getFilePath());
+          // Decide on conversion
+          if (currentArtifactExists) {
+            setPendingAction({ kind: "convert", from: currentMode, to: nextMode });
+            setRunningCommand("confirm");
+          }
           writeGenerationModeToConfig(nextMode);
           setCurrentMode(nextMode);
           setOutput((prev) => [...prev, `✅ Mode set to: ${nextMode}`]);
-
-          // Decide on conversion
-          if (nextMode === "dashboard" && currentArtifactExists) {
-            setPendingAction("notebook-to-dashboard");
-            setRunningCommand("confirm");
-          } else if (nextMode === "notebook" && currentArtifactExists) {
-            setPendingAction("dashboard-to-notebook");
-            setRunningCommand("confirm");
-          }
         } catch (error) {
           setOutput((prev) => [
             ...prev,
@@ -360,27 +359,24 @@ export const useCommands = () => {
       return;
     }
     try {
-      if (pendingAction === "notebook-to-dashboard") {
-        const response = await executePrompt(buildConversionPrompt("notebook", "dashboard"), {
-          echoPrompt: false,
-          useRawPrompt: true,
-        });
+      if (pendingAction && pendingAction.kind === "convert") {
+        const response = await executePrompt(
+          buildConversionPrompt(pendingAction.from, pendingAction.to),
+          {
+            echoPrompt: false,
+            useRawPrompt: true,
+          },
+        );
         if (response.success) {
-          setOutput((prev) => [...prev, `✅ Dashboard generated: \`${DASHBOARD_FILE}\`.`]);
+          const generated = pendingAction.to === "dashboard" ? DASHBOARD_FILE : NOTEBOOK_FILE;
+          setOutput((prev) => [
+            ...prev,
+            `✅ ${pendingAction.to === "dashboard" ? "Dashboard" : "Notebook"} generated: \`${generated}\`.`,
+          ]);
         } else {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
         }
-      } else if (pendingAction === "dashboard-to-notebook") {
-        const response = await executePrompt(buildConversionPrompt("dashboard", "notebook"), {
-          echoPrompt: false,
-          useRawPrompt: true,
-        });
-        if (response.success) {
-          setOutput((prev) => [...prev, `✅ Notebook generated: \`${NOTEBOOK_FILE}\`.`]);
-        } else {
-          setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
-        }
-      } else if (pendingAction === "auto-fix-error") {
+      } else if (pendingAction && pendingAction.kind === "auto-fix-error") {
         await artifactRef.current.fix(executePrompt, {
           onMessage: (l) => setOutput((prev) => [...prev, l]),
         });
