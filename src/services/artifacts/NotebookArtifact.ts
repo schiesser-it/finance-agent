@@ -1,9 +1,10 @@
 import { spawn, spawnSync } from "node:child_process";
-import { openSync, existsSync } from "node:fs";
+import { openSync, existsSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { openExternalUrl } from "../browser.js";
+import { ClaudeResponse } from "../claudeService.js";
 import {
   ensureConfigDir,
   getLogsDir,
@@ -102,5 +103,53 @@ export class NotebookArtifact implements Artifact {
     if (thinking === "hard") postfix = " think hard";
     if (thinking === "harder") postfix = " think harder";
     return `${prefix} ${userPrompt}${postfix}`;
+  }
+
+  async fix(
+    executePrompt: (
+      prompt: string,
+      options?: { echoPrompt?: boolean; useRawPrompt?: boolean },
+    ) => Promise<ClaudeResponse>,
+    opts?: { onMessage?: (line: string) => void },
+  ): Promise<void> {
+    const onMessage = opts?.onMessage ?? (() => {});
+    try {
+      const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
+      if (!existsSync(notebookPath)) {
+        onMessage(`No \`${NOTEBOOK_FILE}\` found. Run a prompt first to generate the notebook.`);
+        return;
+      }
+      const raw = readFileSync(notebookPath, {
+        encoding: "utf8",
+      });
+      const parsed: unknown = JSON.parse(raw);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cells: any[] = Array.isArray((parsed as any)?.cells)
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ((parsed as any).cells as any[])
+        : [];
+      let latestTraceback: string[] | null = null;
+      for (const cell of cells) {
+        const outputs = Array.isArray(cell.outputs) ? cell.outputs : [];
+        for (const output of outputs) {
+          if (output && output.output_type === "error" && Array.isArray(output.traceback)) {
+            latestTraceback = output.traceback as string[];
+          }
+        }
+      }
+      if (!latestTraceback || latestTraceback.length === 0) {
+        onMessage(
+          "No error traceback found in the notebook. Did you save the notebook with error?",
+        );
+        return;
+      }
+      const tracebackText = latestTraceback.join("\n");
+      await executePrompt(`fix this error in the notebook ${NOTEBOOK_FILE}: ${tracebackText}`, {
+        useRawPrompt: true,
+      });
+    } catch (e) {
+      onMessage(`Failed to fix notebook: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 }

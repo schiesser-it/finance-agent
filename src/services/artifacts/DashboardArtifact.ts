@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { openExternalUrl } from "../browser.js";
+import { ClaudeResponse } from "../claudeService.js";
 import type { GenerationMode } from "../config.js";
 import {
   getVenvDir,
@@ -172,5 +173,16 @@ export class DashboardArtifact implements Artifact {
     if (thinking === "hard") postfix = " think hard";
     if (thinking === "harder") postfix = " think harder";
     return `${prefix} ${userPrompt}${postfix}`;
+  }
+
+  async fix(
+    _executePrompt: (
+      prompt: string,
+      options?: { echoPrompt?: boolean; useRawPrompt?: boolean },
+    ) => Promise<ClaudeResponse>,
+    opts?: { onMessage?: (line: string) => void },
+  ): Promise<void> {
+    const onMessage = opts?.onMessage ?? (() => {});
+    onMessage("The /fix command is not available in dashboard mode at the moment.");
   }
 }

@@ -1,3 +1,4 @@
+import { ClaudeResponse } from "../claudeService.js";
 import type { GenerationMode } from "../config.js";
 
 export interface Artifact {
@@ -8,4 +9,11 @@ export interface Artifact {
     onTraceback?: (trace: string) => void;
   }): Promise<void>;
   buildGeneratePrompt(userPrompt: string): string;
+  fix(
+    executePrompt: (
+      prompt: string,
+      options?: { echoPrompt?: boolean; useRawPrompt?: boolean },
+    ) => Promise<ClaudeResponse>,
+    opts?: { onMessage?: (line: string) => void },
+  ): Promise<void>;
 }

@@ -1,4 +1,4 @@
-import { existsSync, unlinkSync, readFileSync } from "node:fs";
+import { existsSync, unlinkSync } from "node:fs";
 import path from "node:path";
 
 import { useApp } from "ink";
@@ -180,61 +180,14 @@ export const useCommands = () => {
       }
 
       if (command === "/fix") {
-        const mode = currentMode;
-        if (mode !== "notebook") {
-          setOutput((prev) => [
-            ...prev,
-            "The /fix command is only available in notebook mode at the moment.",
-          ]);
-          return;
-        }
-        const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
         try {
-          if (!existsSync(notebookPath)) {
-            setOutput((prev) => [
-              ...prev,
-              `No \`${NOTEBOOK_FILE}\` found. Run a prompt first to generate the notebook.`,
-            ]);
-            return;
-          }
-
-          const notebookRaw = readFileSync(notebookPath, { encoding: "utf8" });
-          const notebookJson: unknown = JSON.parse(notebookRaw);
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          type NotebookCell = { outputs?: Array<any> };
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const cells: NotebookCell[] = Array.isArray((notebookJson as any)?.cells)
-            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ((notebookJson as any).cells as NotebookCell[])
-            : [];
-
-          let latestTraceback: string[] | null = null;
-          for (const cell of cells) {
-            const outputs = Array.isArray(cell.outputs) ? cell.outputs : [];
-            for (const output of outputs) {
-              if (output && output.output_type === "error" && Array.isArray(output.traceback)) {
-                latestTraceback = output.traceback as string[];
-              }
-            }
-          }
-
-          if (!latestTraceback || latestTraceback.length === 0) {
-            setOutput((prev) => [
-              ...prev,
-              "No error traceback found in the notebook. Did you save the notebook with error?",
-            ]);
-            return;
-          }
-
-          const tracebackText = latestTraceback.join("\n");
-          executePrompt(`fix this error in the notebook ${NOTEBOOK_FILE}: ${tracebackText}`, {
-            useRawPrompt: true,
+          await artifactRef.current.fix(executePrompt, {
+            onMessage: (l) => setOutput((prev) => [...prev, l]),
           });
         } catch (error) {
           setOutput((prev) => [
             ...prev,
-            `Failed to read or parse \`${NOTEBOOK_FILE}\`: ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to fix: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
         return;
