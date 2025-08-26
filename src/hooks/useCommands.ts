@@ -123,7 +123,16 @@ export const useCommands = () => {
     async (command: string) => {
       setOutput((prev) => [...prev, `> ${command}`]);
       if (command === "/help") {
-        setOutput((prev) => [...prev, "Available commands:", ...availableCommands]);
+        const conversationStatus = ClaudeService.hasActiveSession()
+          ? "✅ Multi-turn conversation active - context will be maintained"
+          : "🆕 No active conversation - next prompt will start fresh";
+        setOutput((prev) => [
+          ...prev,
+          conversationStatus,
+          "",
+          "Available commands:",
+          ...availableCommands,
+        ]);
         return;
       }
 
@@ -411,6 +420,25 @@ export const useCommands = () => {
             `Failed to set thinking mode: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
+        return;
+      }
+
+      if (command === "/new-conversation") {
+        ClaudeService.startNewConversation();
+        setOutput((prev) => [
+          ...prev,
+          "✅ Started a new conversation. Previous context has been cleared.",
+        ]);
+        return;
+      }
+
+      if (command === "/clear-session") {
+        ClaudeService.startNewConversation();
+        setOutput((prev) => [
+          ...prev,
+          "🗑️ Cleared stored session file.",
+          "Next prompt will start a completely fresh conversation.",
+        ]);
         return;
       }
 
