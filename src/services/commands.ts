@@ -8,7 +8,10 @@ export const COMMANDS: CommandSpec[] = [
   { name: "/help", description: "Show available commands" },
   { name: "/examples", description: "Show example prompts" },
   { name: "/update", description: "Update the Python environment" },
-  { name: "/reset", description: "Delete the notebook to start fresh" },
+  {
+    name: "/reset",
+    description: "Delete the current artifact (notebook or dashboard) to start fresh",
+  },
   { name: "/fix", description: "Analyze last error in notebook and propose a fix" },
   { name: "/login", description: "Enter your Anthropic API key" },
   {

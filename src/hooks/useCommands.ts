@@ -150,21 +150,24 @@ export const useCommands = () => {
       }
 
       if (command === "/reset") {
-        const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
+        const mode = readGenerationModeFromConfig();
+        const fileToDelete = mode === "notebook" ? NOTEBOOK_FILE : DASHBOARD_FILE;
+        const filePath = path.resolve(getInvocationCwd(), fileToDelete);
+
         try {
-          if (existsSync(notebookPath)) {
-            unlinkSync(notebookPath);
+          if (existsSync(filePath)) {
+            unlinkSync(filePath);
             setOutput((prev) => [
               ...prev,
-              `Removed \`${NOTEBOOK_FILE}\`. Next run will create a fresh notebook.`,
+              `Removed \`${fileToDelete}\`. Next run will create a fresh ${mode}.`,
             ]);
           } else {
-            setOutput((prev) => [...prev, `No \`${NOTEBOOK_FILE}\` found. Nothing to remove.`]);
+            setOutput((prev) => [...prev, `No \`${fileToDelete}\` found. Nothing to remove.`]);
           }
         } catch (error) {
           setOutput((prev) => [
             ...prev,
-            `Error removing \`${NOTEBOOK_FILE}\`: ${error instanceof Error ? error.message : String(error)}`,
+            `Error removing \`${fileToDelete}\`: ${error instanceof Error ? error.message : String(error)}`,
           ]);
         }
         return;

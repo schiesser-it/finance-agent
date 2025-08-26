@@ -4,7 +4,7 @@ import { render } from "ink";
 import React from "react";
 
 import App from "./App.js";
-import NotebookCleanupGate from "./components/NotebookCleanupGate.js";
+import CleanupGate from "./components/CleanupGate.js";
 import UpdateCheckGate from "./components/UpdateCheckGate.js";
 import { ensureAnthropicApiKeyEnvFromConfig } from "./services/config.js";
 
@@ -12,9 +12,9 @@ ensureAnthropicApiKeyEnvFromConfig();
 
 render(
   <UpdateCheckGate>
-    <NotebookCleanupGate>
+    <CleanupGate>
       <App />
-    </NotebookCleanupGate>
+    </CleanupGate>
   </UpdateCheckGate>,
   { exitOnCtrlC: false },
 );
