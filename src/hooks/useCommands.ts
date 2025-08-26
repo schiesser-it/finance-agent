@@ -4,9 +4,7 @@ import { useApp } from "ink";
 import { useState, useCallback, useRef, useMemo } from "react";
 
 import { buildConversionPrompt } from "../services/artifacts/converter.js";
-import { DASHBOARD_FILE } from "../services/artifacts/DashboardArtifact.js";
 import { createArtifact } from "../services/artifacts/factory.js";
-import { NOTEBOOK_FILE } from "../services/artifacts/NotebookArtifact.js";
 import type { Artifact } from "../services/artifacts/types.js";
 import { ClaudeService } from "../services/claudeService.js";
 import type { ClaudeResponse } from "../services/claudeService.js";
@@ -368,10 +366,9 @@ export const useCommands = () => {
           },
         );
         if (response.success) {
-          const generated = pendingAction.to === "dashboard" ? DASHBOARD_FILE : NOTEBOOK_FILE;
           setOutput((prev) => [
             ...prev,
-            `✅ ${pendingAction.to === "dashboard" ? "Dashboard" : "Notebook"} generated: \`${generated}\`.`,
+            `✅ Converted ${pendingAction.from} to ${pendingAction.to}.`,
           ]);
         } else {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);

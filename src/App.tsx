@@ -251,13 +251,11 @@ const MainUI: React.FC = () => {
       <ConfirmPrompt
         visible={runningCommand === "confirm"}
         message={
-          pendingAction === "notebook-to-dashboard"
-            ? `Convert existing analysis.ipynb to dashboard.py now?`
-            : pendingAction === "dashboard-to-notebook"
-              ? `Convert existing dashboard.py to analysis.ipynb now?`
-              : pendingAction === "auto-fix-error"
-                ? `Error detected. Attempt an automatic fix now?`
-                : ""
+          pendingAction && pendingAction.kind === "convert"
+            ? `Convert existing ${pendingAction.from} to ${pendingAction.to} now?`
+            : pendingAction && pendingAction.kind === "auto-fix-error"
+              ? `Error detected. Attempt an automatic fix now?`
+              : ""
         }
         onConfirm={confirmPendingAction}
         onCancel={cancelPendingAction}
