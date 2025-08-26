@@ -90,25 +90,37 @@ export class DashboardArtifact implements Artifact {
             },
           },
         );
-        const tbBuffer: string[] = [];
+        let tbBuffer: string[] = [];
         let traceActive = false;
-        const forward = (d: unknown) => {
-          const line = String(d).trim();
-          onMessage(line);
-          const l = line || "";
-          if (!traceActive && l.includes("Traceback (most recent call last)")) {
-            traceActive = true;
-            tbBuffer.push(l);
-            return;
+        const maybeFinalizeTrace = () => {
+          if (traceActive && tbBuffer.length > 0) {
+            const trace = tbBuffer.join("\n");
+            traceActive = false;
+            tbBuffer = [];
+            this.lastTraceback = trace;
+            if (opts?.onTraceback) opts.onTraceback(trace);
           }
-          if (traceActive) {
-            tbBuffer.push(l);
-            if (l.trim() === "" || /Error:|Exception:/i.test(l)) {
-              const trace = tbBuffer.join("\n");
-              traceActive = false;
-              tbBuffer.length = 0;
-              this.lastTraceback = trace;
-              if (opts?.onTraceback) opts.onTraceback(trace);
+        };
+        const forward = (d: unknown) => {
+          const chunk = String(d);
+          const lines = chunk.split(/\r?\n/);
+          for (const rawLine of lines) {
+            const line = rawLine; // preserve as-is for traceback fidelity
+            const trimmed = line.trim();
+            if (trimmed.length > 0) {
+              onMessage(trimmed);
+            }
+            if (!traceActive && line.includes("Traceback (most recent call last)")) {
+              traceActive = true;
+              tbBuffer.push(line);
+              continue;
+            }
+            if (traceActive) {
+              tbBuffer.push(line);
+              // End the traceback when we hit a blank line or an Exception/Error line
+              if (trimmed === "" || /\b(?:Error|Exception)\b/i.test(trimmed)) {
+                maybeFinalizeTrace();
+              }
             }
           }
         };
