@@ -358,6 +358,25 @@ export const useCommands = () => {
     }
     try {
       if (pendingAction && pendingAction.kind === "convert") {
+        // Ensure destination file does not exist before converting
+        try {
+          const destinationArtifact = createArtifact(pendingAction.to);
+          const destinationPath = destinationArtifact.getFilePath();
+          if (existsSync(destinationPath)) {
+            unlinkSync(destinationPath);
+            setOutput((prev) => [
+              ...prev,
+              `Removed existing \`${destinationArtifact.fileName}\` before conversion.`,
+            ]);
+          }
+        } catch (e) {
+          setOutput((prev) => [
+            ...prev,
+            `Warning: Failed to ensure clean destination before conversion: ${
+              e instanceof Error ? e.message : String(e)
+            }`,
+          ]);
+        }
         const response = await executePrompt(
           buildConversionPrompt(pendingAction.from, pendingAction.to),
           {
