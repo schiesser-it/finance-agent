@@ -22,6 +22,10 @@ export class NotebookArtifact implements Artifact {
   mode: GenerationMode = "notebook";
   fileName = NOTEBOOK_FILE;
 
+  getFilePath(): string {
+    return path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
+  }
+
   async runProcess(opts?: { onMessage?: (line: string) => void }): Promise<void> {
     const onMessage = opts?.onMessage ?? (() => {});
     ensureConfigDir();
@@ -89,7 +93,7 @@ export class NotebookArtifact implements Artifact {
   }
 
   buildGeneratePrompt(userPrompt: string): string {
-    const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
+    const notebookPath = this.getFilePath();
     const guidance =
       "Make sure to tell a story and add supporting visual pleasing graphs using plotly. " +
       "When using yfinance, auto_adjust=True is now the default. This means that 'Open', 'High', 'Low', and 'Close' columns are all automatically adjusted for stock splits and dividends. No need to use e.g. 'Adj Close' anymore. " +
@@ -114,7 +118,7 @@ export class NotebookArtifact implements Artifact {
   ): Promise<void> {
     const onMessage = opts?.onMessage ?? (() => {});
     try {
-      const notebookPath = path.resolve(getInvocationCwd(), NOTEBOOK_FILE);
+      const notebookPath = this.getFilePath();
       if (!existsSync(notebookPath)) {
         onMessage(`No \`${NOTEBOOK_FILE}\` found. Run a prompt first to generate the notebook.`);
         return;

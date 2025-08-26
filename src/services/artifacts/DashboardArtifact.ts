@@ -29,6 +29,10 @@ export class DashboardArtifact implements Artifact {
   fileName = DASHBOARD_FILE;
   private lastTraceback: string | null = null;
 
+  getFilePath(): string {
+    return path.resolve(getInvocationCwd(), DASHBOARD_FILE);
+  }
+
   async runProcess(opts?: {
     onMessage?: (line: string) => void;
     onTraceback?: (trace: string) => void;
@@ -166,7 +170,7 @@ export class DashboardArtifact implements Artifact {
       "Use Plotly for charts. Ensure a professional Streamlit layout with header, optional KPI row with trend arrows (green up for positive, red down for negative), a grid of up to four best charts, and a concluding summary. Keep card heights uniform and show two decimal places for trends. " +
       "When using yfinance, auto_adjust=True is now the default. This means that 'Open', 'High', 'Low', and 'Close' columns are all automatically adjusted for stock splits and dividends. No need to use e.g. 'Adj Close' anymore. " +
       "When working with PDF, use PDF extractor tool to get the content or tabular data instead of `Read` tool.";
-    const prefix = existsSync(path.resolve(getInvocationCwd(), DASHBOARD_FILE))
+    const prefix = existsSync(this.getFilePath())
       ? `update the Streamlit dashboard named ${DASHBOARD_FILE}. ${guidance}`
       : `create a Streamlit dashboard named ${DASHBOARD_FILE}. ${guidance}`;
     const thinking = readThinkingModeFromConfig();

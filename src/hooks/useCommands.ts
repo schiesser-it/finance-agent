@@ -1,5 +1,4 @@
 import { existsSync, unlinkSync } from "node:fs";
-import path from "node:path";
 
 import { useApp } from "ink";
 import { useState, useCallback, useRef, useMemo } from "react";
@@ -16,11 +15,11 @@ import {
   readSelectedModelFromConfig,
   resolveModelId,
   writeSelectedModelToConfig,
-  getInvocationCwd,
   readThinkingModeFromConfig,
   writeThinkingModeToConfig,
   readGenerationModeFromConfig,
   writeGenerationModeToConfig,
+  GenerationMode,
 } from "../services/config.js";
 import { getDefaultPackages, updateVenvPackages } from "../services/venv.js";
 
@@ -148,16 +147,15 @@ export const useCommands = () => {
       }
 
       if (command === "/reset") {
-        const mode = currentMode;
-        const fileToDelete = mode === "notebook" ? NOTEBOOK_FILE : DASHBOARD_FILE;
-        const filePath = path.resolve(getInvocationCwd(), fileToDelete);
+        const fileToDelete = artifactRef.current.fileName;
+        const filePath = artifactRef.current.getFilePath();
 
         try {
           if (existsSync(filePath)) {
             unlinkSync(filePath);
             setOutput((prev) => [
               ...prev,
-              `Removed \`${fileToDelete}\`. Next run will create a fresh ${mode}.`,
+              `Removed \`${fileToDelete}\`. Next run will create a fresh ${currentMode}.`,
             ]);
           } else {
             setOutput((prev) => [...prev, `No \`${fileToDelete}\` found. Nothing to remove.`]);
@@ -270,7 +268,6 @@ export const useCommands = () => {
 
       if (command.startsWith("/mode")) {
         const [, arg] = command.split(/\s+/, 2);
-        const currentMode = readGenerationModeFromConfig();
         if (!arg) {
           setOutput((prev) => [
             ...prev,
@@ -282,31 +279,27 @@ export const useCommands = () => {
           ]);
           return;
         }
-        const normalized = arg.trim().toLowerCase();
-        if (!["notebook", "dashboard"].includes(normalized)) {
+        const nextMode: GenerationMode = arg.trim().toLowerCase() as GenerationMode;
+        if (!["notebook", "dashboard"].includes(nextMode)) {
           setOutput((prev) => [...prev, `Unknown mode: ${arg}`, "Use one of: notebook, dashboard"]);
           return;
         }
         try {
           // If switching, ask for conversion
-          const nextMode = normalized as "notebook" | "dashboard";
           if (nextMode === currentMode) {
             setOutput((prev) => [...prev, `Mode already set to: ${currentMode}`]);
             return;
           }
+          const currentArtifactExists = existsSync(artifactRef.current.getFilePath());
           writeGenerationModeToConfig(nextMode);
           setCurrentMode(nextMode);
-          const now = nextMode;
-          setOutput((prev) => [...prev, `✅ Mode set to: ${now}`]);
+          setOutput((prev) => [...prev, `✅ Mode set to: ${nextMode}`]);
 
           // Decide on conversion
-          const cwd = getInvocationCwd();
-          const notebookExists = existsSync(path.resolve(cwd, NOTEBOOK_FILE));
-          const dashboardExists = existsSync(path.resolve(cwd, DASHBOARD_FILE));
-          if (now === "dashboard" && notebookExists) {
+          if (nextMode === "dashboard" && currentArtifactExists) {
             setPendingAction("notebook-to-dashboard");
             setRunningCommand("confirm");
-          } else if (now === "notebook" && dashboardExists) {
+          } else if (nextMode === "notebook" && currentArtifactExists) {
             setPendingAction("dashboard-to-notebook");
             setRunningCommand("confirm");
           }

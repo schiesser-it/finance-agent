@@ -12,6 +12,8 @@ const mockArtifact = {
   fileName: "analysis.ipynb",
   buildGeneratePrompt: vi.fn((p: string) => `ARTIFACT_PROMPT: ${p}`),
   runProcess: vi.fn(async () => {}),
+  getFilePath: vi.fn(() => "/test/cwd/analysis.ipynb"),
+  fix: vi.fn(async () => {}),
 };
 vi.mock("../../services/artifacts/factory.js", () => {
   const createArtifact = vi.fn(() => mockArtifact);
@@ -49,6 +51,8 @@ describe("useCommands", () => {
     mockArtifact.fileName = "analysis.ipynb";
     mockArtifact.buildGeneratePrompt = vi.fn((p: string) => `ARTIFACT_PROMPT: ${p}`);
     mockArtifact.runProcess = vi.fn(async () => {});
+    mockArtifact.getFilePath = vi.fn(() => "/test/cwd/analysis.ipynb");
+    mockArtifact.fix = vi.fn(async () => {});
   });
 
   afterEach(() => {

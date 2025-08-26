@@ -1,12 +1,10 @@
 import { existsSync } from "node:fs";
-import path from "node:path";
 
 import { Box, Text } from "ink";
 import React, { useEffect, useState } from "react";
 
-import { DASHBOARD_FILE } from "../services/artifacts/DashboardArtifact.js";
-import { NOTEBOOK_FILE } from "../services/artifacts/NotebookArtifact.js";
-import { getInvocationCwd, readGenerationModeFromConfig } from "../services/config.js";
+import { createArtifact } from "../services/artifacts/factory.js";
+import { readGenerationModeFromConfig } from "../services/config.js";
 
 interface CleanupGateProps {
   children?: React.ReactNode;
@@ -19,11 +17,11 @@ const CleanupGate: React.FC<CleanupGateProps> = ({ children }) => {
 
   useEffect(() => {
     const mode = readGenerationModeFromConfig();
-    const file = mode === "notebook" ? NOTEBOOK_FILE : DASHBOARD_FILE;
+    const file = createArtifact(mode).getFilePath();
     setCurrentMode(mode);
 
     try {
-      setExists(existsSync(path.resolve(getInvocationCwd(), file)));
+      setExists(existsSync(file));
     } catch {
       setExists(false);
     }

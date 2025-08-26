@@ -4,6 +4,7 @@ import type { GenerationMode } from "../config.js";
 export interface Artifact {
   mode: GenerationMode;
   fileName: string;
+  getFilePath(): string;
   runProcess(opts?: {
     onMessage?: (line: string) => void;
     onTraceback?: (trace: string) => void;
