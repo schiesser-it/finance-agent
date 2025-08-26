@@ -27,6 +27,7 @@ import type { Artifact } from "./types.js";
 export class DashboardArtifact implements Artifact {
   mode: GenerationMode = "dashboard";
   fileName = DASHBOARD_FILE;
+  private lastTraceback: string | null = null;
 
   async runProcess(opts?: {
     onMessage?: (line: string) => void;
@@ -102,6 +103,7 @@ export class DashboardArtifact implements Artifact {
               const trace = tbBuffer.join("\n");
               traceActive = false;
               tbBuffer.length = 0;
+              this.lastTraceback = trace;
               if (opts?.onTraceback) opts.onTraceback(trace);
             }
           }
@@ -176,13 +178,25 @@ export class DashboardArtifact implements Artifact {
   }
 
   async fix(
-    _executePrompt: (
+    executePrompt: (
       prompt: string,
       options?: { echoPrompt?: boolean; useRawPrompt?: boolean },
     ) => Promise<ClaudeResponse>,
     opts?: { onMessage?: (line: string) => void },
   ): Promise<void> {
     const onMessage = opts?.onMessage ?? (() => {});
-    onMessage("The /fix command is not available in dashboard mode at the moment.");
+    if (!this.lastTraceback) {
+      onMessage("No dashboard error captured yet. Re-run to capture a traceback.");
+      return;
+    }
+    try {
+      await executePrompt(`fix this error in the ${DASHBOARD_FILE}: ${this.lastTraceback}`, {
+        useRawPrompt: true,
+      });
+      this.lastTraceback = null;
+      onMessage("Dashboard error fixed. Refresh the dashboard to see the changes.");
+    } catch (e) {
+      onMessage(`Failed to fix dashboard: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 }

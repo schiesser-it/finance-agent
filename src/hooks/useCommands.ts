@@ -25,17 +25,12 @@ import {
 import { getDefaultPackages, updateVenvPackages } from "../services/venv.js";
 
 type RunningCommand = "execute" | "login" | "examples" | "confirm" | null;
-type PendingAction =
-  | "notebook-to-dashboard"
-  | "dashboard-to-notebook"
-  | "fix-dashboard-error"
-  | null;
+type PendingAction = "notebook-to-dashboard" | "dashboard-to-notebook" | "auto-fix-error" | null;
 
 export const useCommands = () => {
   const [output, setOutput] = useState<string[]>([]);
   const [runningCommand, setRunningCommand] = useState<RunningCommand>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [pendingTraceback, setPendingTraceback] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const { exit } = useApp();
@@ -94,12 +89,9 @@ export const useCommands = () => {
           try {
             await artifactRef.current.runProcess({
               onMessage: (line) => setOutput((prev) => [...prev, line]),
-              onTraceback: (trace) => {
-                if (mode === "dashboard") {
-                  setPendingTraceback(trace);
-                  setPendingAction("fix-dashboard-error");
-                  setRunningCommand("confirm");
-                }
+              onTraceback: () => {
+                setPendingAction("auto-fix-error");
+                setRunningCommand("confirm");
               },
             });
           } catch (e) {
@@ -395,23 +387,16 @@ export const useCommands = () => {
         } else {
           setOutput((prev) => [...prev, `Conversion failed: ${response.error ?? "Unknown error"}`]);
         }
-      } else if (pendingAction === "fix-dashboard-error") {
-        const response = await executePrompt(
-          `fix this error in the ${DASHBOARD_FILE}: ${pendingTraceback}`,
-          {
-            useRawPrompt: true,
-          },
-        );
-        if (!response.success) {
-          setOutput((prev) => [...prev, `Fix failed: ${response.error ?? "Unknown error"}`]);
-        }
+      } else if (pendingAction === "auto-fix-error") {
+        await artifactRef.current.fix(executePrompt, {
+          onMessage: (l) => setOutput((prev) => [...prev, l]),
+        });
       }
     } finally {
       setPendingAction(null);
-      setPendingTraceback(null);
       setRunningCommand(null);
     }
-  }, [pendingAction, pendingTraceback, executePrompt]);
+  }, [pendingAction, executePrompt]);
 
   const cancelPendingAction = useCallback(() => {
     if (pendingAction) {

@@ -255,8 +255,8 @@ const MainUI: React.FC = () => {
             ? `Convert existing analysis.ipynb to dashboard.py now?`
             : pendingAction === "dashboard-to-notebook"
               ? `Convert existing dashboard.py to analysis.ipynb now?`
-              : pendingAction === "fix-dashboard-error"
-                ? `Dashboard error detected. Attempt an automatic fix now?`
+              : pendingAction === "auto-fix-error"
+                ? `Error detected. Attempt an automatic fix now?`
                 : ""
         }
         onConfirm={confirmPendingAction}
