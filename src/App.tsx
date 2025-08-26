@@ -278,12 +278,20 @@ const App: React.FC = () => {
   useEffect(() => {
     return () => {
       // best-effort shutdown on app exit
-      void stopAllManagedProcesses();
+      void stopAllManagedProcesses({
+        onMessage: (line: string) => {
+          console.log(line);
+        },
+      });
     };
   }, []);
 
   return (
-    <VenvSetupGate onReady={() => {}}>
+    <VenvSetupGate
+      onReady={() => {
+        stopAllManagedProcesses();
+      }}
+    >
       <MainUI />
     </VenvSetupGate>
   );

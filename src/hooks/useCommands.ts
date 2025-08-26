@@ -364,6 +364,27 @@ export const useCommands = () => {
         return;
       }
 
+      if (command === "/open") {
+        const mode = readGenerationModeFromConfig();
+        try {
+          await runProcess(mode, {
+            onMessage: (line: string) => {
+              setOutput((prev) => [...prev, line]);
+            },
+          });
+          setOutput((prev) => [
+            ...prev,
+            `✅ ${mode === "notebook" ? "Notebook" : "Dashboard"} opened successfully.`,
+          ]);
+        } catch (error) {
+          setOutput((prev) => [
+            ...prev,
+            `Failed to open ${mode}: ${error instanceof Error ? error.message : String(error)}`,
+          ]);
+        }
+        return;
+      }
+
       if (command === "/examples") {
         setRunningCommand("examples");
         return;

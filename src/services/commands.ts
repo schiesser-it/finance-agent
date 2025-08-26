@@ -26,5 +26,6 @@ export const COMMANDS: CommandSpec[] = [
     description: "Show or set generation mode (notebook|dashboard)",
     takesArgument: true,
   },
+  { name: "/open", description: "Open the current artifact (notebook or dashboard) based on mode" },
   { name: "/quit", description: "Exit the application" },
 ];

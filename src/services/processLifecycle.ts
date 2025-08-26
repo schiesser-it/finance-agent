@@ -67,12 +67,12 @@ export async function stopManagedProcess(
   const meta = readManagedMeta(mode);
   const pid = meta?.pid;
   if (!pid || pid <= 0) {
-    onMessage("No running process found.");
+    onMessage(`No running ${mode} process found.`);
     cleanupManagedMeta(mode);
     return;
   }
 
-  onMessage("Stopping process ...");
+  onMessage(`Stopping ${mode} process ...`);
   try {
     try {
       process.kill(pid, "SIGTERM");
@@ -89,14 +89,14 @@ export async function stopManagedProcess(
       }
       const terminatedAfterKill = await waitForProcessExit(pid, 5000);
       if (!terminatedAfterKill) {
-        onMessage("❌ Failed to stop process. You may need to terminate it manually.");
+        onMessage(`❌ Failed to stop ${mode} process. You may need to terminate it manually.`);
         return;
       }
     }
     cleanupManagedMeta(mode);
-    onMessage("✅ Process stopped.");
+    onMessage(`✅ ${mode} process stopped.`);
   } catch (e) {
-    onMessage(`Error stopping process: ${e instanceof Error ? e.message : String(e)}`);
+    onMessage(`Error stopping ${mode} process: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
