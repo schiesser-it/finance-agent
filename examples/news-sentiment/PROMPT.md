@@ -13,5 +13,5 @@ get the latest finance news and run a sentiment analysis on them
 To run the dashboard, you can use the following command:
 
 ```bash
-uv run dashboard.py
+uvx --with-requirements requirements.txt streamlit run dashboard.py
 ```

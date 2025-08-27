@@ -1,18 +1,3 @@
-# /// script
-# requires-python = ">=3.13"
-# dependencies = [
-#    "pandas",
-#    "seaborn",
-#    "yfinance",
-#    "matplotlib",
-#    "scipy",
-#    "plotly",
-#    "streamlit",
-#    "watchdog",
-#    "feedparser",
-# ]
-# ///
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -388,12 +373,3 @@ st.markdown("""
     <p>Last updated: {}</p>
 </div>
 """.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), unsafe_allow_html=True)
-
-# Hacky stuff required to be added to make it work without `streamlit run`:
-if __name__ == "__main__":
-    from streamlit.runtime.scriptrunner import get_script_run_ctx
-    if get_script_run_ctx() is None:
-        from streamlit.web.cli import main
-        import sys
-        sys.argv = ['streamlit', 'run', __file__]
-        main()
