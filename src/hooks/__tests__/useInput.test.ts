@@ -372,5 +372,23 @@ describe("useInputState", () => {
       const effectiveInput = result.current.getSelectedCommandEffectiveInput();
       expect(effectiveInput).toBe(null);
     });
+
+    it("should prioritize exact match for /mode over /model", () => {
+      const { result } = renderHook(() => useInputState());
+
+      act(() => {
+        result.current.updateCommandMatches("/mode");
+      });
+
+      const effectiveInput = result.current.getSelectedCommandEffectiveInput();
+      expect(effectiveInput).toBe("/mode");
+
+      let committed: string | null = null;
+      act(() => {
+        committed = result.current.commitSelectedCommand();
+      });
+
+      expect(committed).toBe("/mode");
+    });
   });
 });

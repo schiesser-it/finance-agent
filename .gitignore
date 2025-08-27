@@ -12,3 +12,8 @@ dashboard.py
 # jupyter
 analysis.ipynb
 .ipynb_checkpoints/
+
+# Python
+__pycache__/
+
+CLAUDE.md

@@ -66,7 +66,14 @@ export const useInputState = () => {
         return;
       }
       const [cmdPart] = text.split(/\s+/, 1);
-      const matches = COMMANDS.filter((c) => c.name.startsWith(cmdPart)).map((c) => c.name);
+      // Prefer exact match first to avoid selecting a longer prefix match (e.g., /mode vs /model)
+      const matches = COMMANDS.filter((c) => c.name.startsWith(cmdPart))
+        .map((c) => c.name)
+        .sort((a, b) => {
+          if (a === cmdPart && b !== cmdPart) return -1;
+          if (b === cmdPart && a !== cmdPart) return 1;
+          return 0;
+        });
       setCommandMatches(matches);
       setShowingCommandCompletions(matches.length > 0 && cmdPart.length > 0);
       setSelectedCommandIndex(0);
