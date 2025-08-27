@@ -3,3 +3,4 @@ feedparser
 plotly
 streamlit
 textblob
+watchdog
