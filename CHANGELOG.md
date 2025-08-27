@@ -1,5 +1,13 @@
 # finagent
 
+## 0.0.12
+
+### Patch Changes
+
+- [#18](https://github.com/schiesser-it/finance-agent/pull/18) [`12579d8`](https://github.com/schiesser-it/finance-agent/commit/12579d8abc2a8a02154c363f147f723c7d176ba9) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Add /open command to open artifact for the current mode
+
+- [#18](https://github.com/schiesser-it/finance-agent/pull/18) [`12579d8`](https://github.com/schiesser-it/finance-agent/commit/12579d8abc2a8a02154c363f147f723c7d176ba9) Thanks [@marcusschiesser](https://github.com/marcusschiesser)! - Add /mode command to switch between dashboard and notebook generation
+
 ## 0.0.11
 
 ### Patch Changes
