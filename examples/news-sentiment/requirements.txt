@@ -1,0 +1,6 @@
+yfinance
+feedparser
+plotly
+streamlit
+textblob
+watchdog
