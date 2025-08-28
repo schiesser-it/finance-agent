@@ -8,7 +8,12 @@ import {
   type PermissionMode,
 } from "@anthropic-ai/claude-code";
 
-import { readSelectedModelFromConfig } from "./config.js";
+import {
+  readSelectedModelFromConfig,
+  readSessionIdFromConfig,
+  writeSessionIdToConfig,
+  clearSessionFromConfig,
+} from "./config.js";
 import { createMCPServer } from "./mcp.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
 
@@ -120,6 +125,9 @@ export class ClaudeService {
       const abortController = options.abortController || new AbortController();
       const mcpServers = createMCPServer();
 
+      // Handle session management
+      const resumeSessionId = readSessionIdFromConfig();
+
       for await (const message of query({
         prompt,
         options: {
@@ -130,8 +138,21 @@ export class ClaudeService {
           permissionMode: "bypassPermissions" as PermissionMode,
           allowedTools: Object.keys(mcpServers).map((name) => `mcp__${name}`),
           mcpServers,
+          ...(resumeSessionId && {
+            resume: resumeSessionId, // This is not resumeSessionId mentioned in official document
+            maxTurns: 10,
+          }),
         },
       })) {
+        // Capture session ID from system init message (only for new conversations)
+        if (
+          message.type === "system" &&
+          message.subtype === "init" &&
+          message.session_id &&
+          !resumeSessionId
+        ) {
+          writeSessionIdToConfig(message.session_id);
+        }
         const renderedMessage = MessageRenderer.renderMessage(message);
         if (options.onMessage) {
           options.onMessage(renderedMessage);
@@ -151,5 +172,17 @@ export class ClaudeService {
 
   static renderMessage(message: SDKMessage): string {
     return MessageRenderer.renderMessage(message);
+  }
+
+  static startNewConversation(): void {
+    clearSessionFromConfig();
+  }
+
+  static hasActiveSession(): boolean {
+    return !!readSessionIdFromConfig();
+  }
+
+  static getSessionId(): string | undefined {
+    return readSessionIdFromConfig();
   }
 }

@@ -161,6 +161,8 @@ export const useCommands = () => {
           } else {
             setOutput((prev) => [...prev, `No \`${fileToDelete}\` found. Nothing to remove.`]);
           }
+          // ensure that we start a new conversation
+          ClaudeService.startNewConversation();
         } catch (error) {
           setOutput((prev) => [
             ...prev,

@@ -185,9 +185,45 @@ export function readThinkingModeFromConfig(): ThinkingMode {
   }
 }
 
+// ---- Conversation session helpers ----
+
+export function getSessionConfigFilePath(): string {
+  return path.join(getConfigDir(), "session");
+}
+
+export function writeSessionIdToConfig(sessionId: string): void {
+  ensureConfigDir();
+  const filePath = getSessionConfigFilePath();
+  writeFileSync(filePath, `${sessionId.trim()}\n`, { encoding: "utf-8" });
+}
+
+export function readSessionIdFromConfig(): string | undefined {
+  try {
+    const filePath = getSessionConfigFilePath();
+    if (!existsSync(filePath)) {
+      return undefined;
+    }
+    const raw = readFileSync(filePath, { encoding: "utf-8" });
+    const trimmed = raw.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function clearSessionFromConfig(): void {
+  try {
+    const filePath = getSessionConfigFilePath();
+    if (existsSync(filePath)) {
+      writeFileSync(filePath, "", { encoding: "utf-8" });
+    }
+  } catch {
+    return undefined;
+  }
+}
+
 // ---- Generation mode helpers ----
 // TODO: need to use a structured format for config instead one file for each setting
-
 export type GenerationMode = "notebook" | "dashboard";
 
 export const DEFAULT_GENERATION_MODE: GenerationMode = "notebook";
