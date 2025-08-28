@@ -20,7 +20,6 @@ import { SYSTEM_PROMPT } from "./prompts.js";
 export interface ClaudeOptions {
   abortController?: AbortController;
   onMessage?: (message: string) => void;
-  startNewConversation?: boolean;
 }
 
 export interface ClaudeResponse {
@@ -127,29 +126,7 @@ export class ClaudeService {
       const mcpServers = createMCPServer();
 
       // Handle session management
-      const existingSessionId = readSessionIdFromConfig();
-      let resumeSessionId: string | undefined;
-
-      if (options.startNewConversation) {
-        // Clear existing session to start fresh
-        clearSessionFromConfig();
-        if (options.onMessage) {
-          options.onMessage("🔄 Starting new conversation (context cleared)");
-        }
-      } else if (existingSessionId) {
-        // Resume specific conversation using the stored session ID
-        resumeSessionId = existingSessionId;
-        if (options.onMessage) {
-          options.onMessage(
-            `🔗 Resuming specific session: ${existingSessionId.substring(0, 8)}...`,
-          );
-          options.onMessage(`📡 Will use resumeSessionId: ${resumeSessionId}`);
-        }
-      } else {
-        if (options.onMessage) {
-          options.onMessage("🆕 Starting first conversation");
-        }
-      }
+      const resumeSessionId = readSessionIdFromConfig();
 
       for await (const message of query({
         prompt,
