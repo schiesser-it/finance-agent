@@ -24,8 +24,6 @@ export const COMMANDS: CommandSpec[] = [
     description: "Show or set thinking mode (none|normal|hard|harder)",
     takesArgument: true,
   },
-  { name: "/new-conversation", description: "Start a fresh conversation (clear context)" },
-  { name: "/clear-session", description: "Clear stored session file" },
   {
     name: "/mode",
     description: "Show or set generation mode (notebook|dashboard)",

@@ -38,7 +38,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@anthropic-ai/claude-code": "^1.0.92",
+    "@anthropic-ai/claude-code": "^1.0.95",
     "@modelcontextprotocol/sdk": "^1.17.3",
     "ink": "^6.1.1",
     "llama-cloud-services": "^0.3.3",

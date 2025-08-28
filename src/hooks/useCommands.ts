@@ -126,16 +126,7 @@ export const useCommands = () => {
     async (command: string) => {
       setOutput((prev) => [...prev, `> ${command}`]);
       if (command === "/help") {
-        const conversationStatus = ClaudeService.hasActiveSession()
-          ? "✅ Multi-turn conversation active - context will be maintained"
-          : "🆕 No active conversation - next prompt will start fresh";
-        setOutput((prev) => [
-          ...prev,
-          conversationStatus,
-          "",
-          "Available commands:",
-          ...availableCommands,
-        ]);
+        setOutput((prev) => [...prev, "Available commands:", ...availableCommands]);
         return;
       }
 
@@ -170,6 +161,8 @@ export const useCommands = () => {
           } else {
             setOutput((prev) => [...prev, `No \`${fileToDelete}\` found. Nothing to remove.`]);
           }
+          // ensure that we start a new conversation
+          ClaudeService.startNewConversation();
         } catch (error) {
           setOutput((prev) => [
             ...prev,
@@ -274,24 +267,6 @@ export const useCommands = () => {
           ]);
         }
         return;
-      }
-
-      if (command === "/new-conversation") {
-        ClaudeService.startNewConversation();
-        setOutput((prev) => [
-          ...prev,
-          "✅ Started a new conversation. Previous context has been cleared.",
-        ]);
-        return;
-      }
-
-      if (command === "/clear-session") {
-        ClaudeService.startNewConversation();
-        setOutput((prev) => [
-          ...prev,
-          "🗑️ Cleared stored session file.",
-          "Next prompt will start a completely fresh conversation.",
-        ]);
       }
 
       if (command.startsWith("/mode")) {
