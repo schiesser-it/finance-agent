@@ -218,10 +218,10 @@ export function clearSessionFromConfig(): void {
       writeFileSync(filePath, "", { encoding: "utf-8" });
     }
   } catch {
-    return undefined
+    return undefined;
   }
 }
-    
+
 // ---- Generation mode helpers ----
 // TODO: need to use a structured format for config instead one file for each setting
 export type GenerationMode = "notebook" | "dashboard";
