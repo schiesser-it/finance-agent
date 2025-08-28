@@ -1,5 +1,11 @@
 # finagent
 
+## 0.0.13
+
+### Patch Changes
+
+- [#19](https://github.com/schiesser-it/finance-agent/pull/19) [`1650c98`](https://github.com/schiesser-it/finance-agent/commit/1650c982df93acac6d41d10f37ee03e012f90962) Thanks [@leehuwuj](https://github.com/leehuwuj)! - Add session conversation for follow-up messages
+
 ## 0.0.12
 
 ### Patch Changes
