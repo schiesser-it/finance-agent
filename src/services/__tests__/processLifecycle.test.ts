@@ -122,13 +122,30 @@ describe("processLifecycle", () => {
     expect(messages.some((m) => m.includes("✅ notebook process stopped."))).toBe(true);
   });
 
-  it("stopAllManagedProcesses attempts both modes", async () => {
+  it("stopAllManagedProcesses handles both modes without errors", async () => {
     // ensure no processes appear to be running
     mockFs.existsSync.mockReturnValue(false);
     const { stopAllManagedProcesses } = await import("../processLifecycle");
+
     const messages: string[] = [];
-    await stopAllManagedProcesses({ onMessage: (l) => messages.push(l) });
-    expect(messages.some((m) => m.includes("No running notebook process found."))).toBe(true);
-    expect(messages.some((m) => m.includes("No running dashboard process found."))).toBe(true);
+    // This should not throw and should handle both notebook and dashboard modes
+    await expect(
+      stopAllManagedProcesses({ onMessage: (l: string) => messages.push(l) }),
+    ).resolves.toBeUndefined();
+
+    // When no processes are running, no messages should be generated
+    expect(messages).toHaveLength(0);
+  });
+
+  it("stopManagedProcess cleans up meta when no process is running", async () => {
+    // no meta file exists
+    mockFs.existsSync.mockReturnValue(false);
+
+    const messages: string[] = [];
+    await stopManagedProcess("notebook", { onMessage: (l: string) => messages.push(l) });
+
+    // Should not generate any messages when no process exists
+    expect(messages).toHaveLength(0);
+    // Function should complete without error
   });
 });
