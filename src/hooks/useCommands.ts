@@ -1,12 +1,12 @@
 import { existsSync, unlinkSync } from "node:fs";
 
 import { useApp } from "ink";
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 
-import { getCleanupWarningMessage } from "../components/CleanupGate.js";
 import { buildConversionPrompt } from "../services/artifacts/converter.js";
 import { createArtifact } from "../services/artifacts/factory.js";
 import type { Artifact } from "../services/artifacts/types.js";
+import { getCleanupWarningMessage, checkForExistingFile } from "../services/cleanup.js";
 import { ClaudeService } from "../services/claudeService.js";
 import type { ClaudeResponse } from "../services/claudeService.js";
 import { COMMANDS } from "../services/commands.js";
@@ -46,6 +46,15 @@ export const useCommands = () => {
   if (artifactRef.current.mode !== currentMode) {
     artifactRef.current = createArtifact(currentMode);
   }
+
+  // Show cleanup warning on startup if file exists
+  useEffect(() => {
+    const { exists, mode } = checkForExistingFile();
+    if (exists) {
+      const warningMessages = getCleanupWarningMessage(mode);
+      setOutput(warningMessages);
+    }
+  }, []);
 
   const executePrompt = useCallback(
     async (

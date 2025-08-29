@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { ClaudeService } from "../../services/claudeService";
 import * as config from "../../services/config";
+import * as cleanup from "../../services/cleanup";
 // Artifacts factory mock (uses a shared object captured by closure)
 const mockArtifact = {
   mode: "notebook" as const,
@@ -28,12 +29,14 @@ vi.mock("ink", () => ({
 
 vi.mock("../../services/claudeService");
 vi.mock("../../services/config");
+vi.mock("../../services/cleanup");
 vi.mock("../../services/venv");
 vi.mock("node:fs");
 vi.mock("node:path");
 
 const mockClaudeService = vi.mocked(ClaudeService);
 const mockConfig = vi.mocked(config);
+const mockCleanup = vi.mocked(cleanup);
 const mockFs = vi.mocked(fs);
 const mockPath = vi.mocked(path);
 
@@ -44,6 +47,8 @@ describe("useCommands", () => {
     // Default mocks
     mockConfig.getInvocationCwd.mockReturnValue("/test/cwd");
     mockConfig.readGenerationModeFromConfig.mockReturnValue("notebook");
+    mockCleanup.checkForExistingFile.mockReturnValue({ exists: false, mode: "notebook" });
+    mockCleanup.getCleanupWarningMessage.mockReturnValue(["⚠️ Warning message"]);
     mockPath.resolve.mockImplementation((...segments) => segments.join("/"));
     mockFs.existsSync.mockReturnValue(false);
     // reset artifact mocks
@@ -252,6 +257,12 @@ describe("useCommands", () => {
 
       mockConfig.writeGenerationModeToConfig.mockImplementation(() => {});
 
+      // Mock cleanup service to return warning messages
+      mockCleanup.getCleanupWarningMessage.mockReturnValue([
+        "⚠️  A dashboard file already exists.",
+        "   Run /reset to delete it and start fresh or /open to open it.",
+      ]);
+
       const { result } = renderHook(() => useCommands());
 
       await act(async () => {
@@ -295,6 +306,12 @@ describe("useCommands", () => {
       mockFs.existsSync.mockReturnValue(true);
 
       mockConfig.writeGenerationModeToConfig.mockImplementation(() => {});
+
+      // Mock cleanup service (shouldn't be called in this case since conversion flow is triggered)
+      mockCleanup.getCleanupWarningMessage.mockReturnValue([
+        "⚠️  A dashboard file already exists.",
+        "   Run /reset to delete it and start fresh or /open to open it.",
+      ]);
 
       const { result } = renderHook(() => useCommands());
 
