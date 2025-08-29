@@ -5,8 +5,8 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { ClaudeService } from "../../services/claudeService";
-import * as config from "../../services/config";
 import * as cleanup from "../../services/cleanup";
+import * as config from "../../services/config";
 // Artifacts factory mock (uses a shared object captured by closure)
 const mockArtifact = {
   mode: "notebook" as const,
@@ -243,7 +243,7 @@ describe("useCommands", () => {
       // Mock createArtifact to return different artifacts based on mode
       const { createArtifact } = await import("../../services/artifacts/factory.js");
       vi.mocked(createArtifact).mockImplementation((mode) => {
-        if (mode === "dashboard") return dashboardArtifact as any;
+        if (mode === "dashboard") return dashboardArtifact;
         return mockArtifact;
       });
 
@@ -298,7 +298,7 @@ describe("useCommands", () => {
 
       const { createArtifact } = await import("../../services/artifacts/factory.js");
       vi.mocked(createArtifact).mockImplementation((mode) => {
-        if (mode === "dashboard") return dashboardArtifact as any;
+        if (mode === "dashboard") return dashboardArtifact;
         return mockArtifact;
       });
 

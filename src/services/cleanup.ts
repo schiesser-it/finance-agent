@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+
 import { createArtifact } from "./artifacts/factory.js";
 import { readGenerationModeFromConfig, type GenerationMode } from "./config.js";
 

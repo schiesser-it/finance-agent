@@ -6,9 +6,9 @@ import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { buildConversionPrompt } from "../services/artifacts/converter.js";
 import { createArtifact } from "../services/artifacts/factory.js";
 import type { Artifact } from "../services/artifacts/types.js";
-import { getCleanupWarningMessage, checkForExistingFile } from "../services/cleanup.js";
 import { ClaudeService } from "../services/claudeService.js";
 import type { ClaudeResponse } from "../services/claudeService.js";
+import { getCleanupWarningMessage, checkForExistingFile } from "../services/cleanup.js";
 import { COMMANDS } from "../services/commands.js";
 import {
   readSelectedModelFromConfig,
