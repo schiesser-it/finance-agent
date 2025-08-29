@@ -1,13 +1,14 @@
 import { existsSync, unlinkSync } from "node:fs";
 
 import { useApp } from "ink";
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 
 import { buildConversionPrompt } from "../services/artifacts/converter.js";
 import { createArtifact } from "../services/artifacts/factory.js";
 import type { Artifact } from "../services/artifacts/types.js";
 import { ClaudeService } from "../services/claudeService.js";
 import type { ClaudeResponse } from "../services/claudeService.js";
+import { getCleanupWarningMessage, checkForExistingFile } from "../services/cleanup.js";
 import { COMMANDS } from "../services/commands.js";
 import {
   readSelectedModelFromConfig,
@@ -45,6 +46,15 @@ export const useCommands = () => {
   if (artifactRef.current.mode !== currentMode) {
     artifactRef.current = createArtifact(currentMode);
   }
+
+  // Show cleanup warning on startup if file exists
+  useEffect(() => {
+    const { exists, mode } = checkForExistingFile();
+    if (exists) {
+      const warningMessages = getCleanupWarningMessage(mode);
+      setOutput(warningMessages);
+    }
+  }, []);
 
   const executePrompt = useCallback(
     async (
@@ -294,6 +304,9 @@ export const useCommands = () => {
             return;
           }
           const currentArtifactExists = existsSync(artifactRef.current.getFilePath());
+          const nextArtifact = createArtifact(nextMode);
+          const nextArtifactExists = existsSync(nextArtifact.getFilePath());
+
           // Decide on conversion
           if (currentArtifactExists) {
             setPendingAction({ kind: "convert", from: currentMode, to: nextMode });
@@ -302,6 +315,12 @@ export const useCommands = () => {
           writeGenerationModeToConfig(nextMode);
           setCurrentMode(nextMode);
           setOutput((prev) => [...prev, `✅ Mode set to: ${nextMode}`]);
+
+          // Show cleanup warning if destination file exists and no conversion is triggered
+          if (nextArtifactExists && !currentArtifactExists) {
+            const warningMessages = getCleanupWarningMessage(nextMode);
+            setOutput((prev) => [...prev, ...warningMessages]);
+          }
         } catch (error) {
           setOutput((prev) => [
             ...prev,
