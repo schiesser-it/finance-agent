@@ -4,27 +4,46 @@ import { Box, Text } from "ink";
 import React, { useEffect, useState } from "react";
 
 import { createArtifact } from "../services/artifacts/factory.js";
-import { readGenerationModeFromConfig } from "../services/config.js";
+import { readGenerationModeFromConfig, type GenerationMode } from "../services/config.js";
 
 interface CleanupGateProps {
   children?: React.ReactNode;
 }
 
+export function getCleanupWarningMessage(mode: GenerationMode): string[] {
+  const artifactType = mode === "notebook" ? "Jupyter notebook" : "dashboard";
+  return [
+    `⚠️  A ${artifactType} file already exists.`,
+    `   Run /reset to delete it and start fresh or /open to open it.`,
+  ];
+}
+
 const CleanupGate: React.FC<CleanupGateProps> = ({ children }) => {
   const [exists, setExists] = useState<boolean | null>(null);
   const [blinkOn, setBlinkOn] = useState<boolean>(true);
-  const [currentMode, setCurrentMode] = useState<string>("notebook");
+  const [currentMode, setCurrentMode] = useState<GenerationMode>("notebook");
 
   useEffect(() => {
-    const mode = readGenerationModeFromConfig();
-    const file = createArtifact(mode).getFilePath();
-    setCurrentMode(mode);
+    const checkFileExists = () => {
+      const mode = readGenerationModeFromConfig();
+      const file = createArtifact(mode).getFilePath();
+      setCurrentMode(mode);
 
-    try {
-      setExists(existsSync(file));
-    } catch {
-      setExists(false);
-    }
+      try {
+        const fileExists = existsSync(file);
+        setExists(fileExists);
+      } catch {
+        setExists(false);
+      }
+    };
+
+    // Check initially
+    checkFileExists();
+
+    // Set up a more frequent check to detect changes from /reset command
+    // This ensures the warning disappears promptly when files are deleted
+    const interval = setInterval(checkFileExists, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -34,8 +53,8 @@ const CleanupGate: React.FC<CleanupGateProps> = ({ children }) => {
   }, [exists]);
 
   const getWarningMessage = () => {
-    const artifactType = currentMode === "notebook" ? "Jupyter notebook" : "dashboard";
-    return `⚠️  A ${artifactType} file already exists. \n   Run /reset to delete it and start fresh or /open to open it.`;
+    const warningLines = getCleanupWarningMessage(currentMode);
+    return warningLines.join("\n   ");
   };
 
   return (

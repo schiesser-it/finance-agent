@@ -67,7 +67,6 @@ export async function stopManagedProcess(
   const meta = readManagedMeta(mode);
   const pid = meta?.pid;
   if (!pid || pid <= 0) {
-    onMessage(`No running ${mode} process found.`);
     cleanupManagedMeta(mode);
     return;
   }

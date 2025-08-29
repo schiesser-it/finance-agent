@@ -93,15 +93,6 @@ describe("processLifecycle", () => {
     expect(isManagedProcessRunning("dashboard")).toBe(true);
   });
 
-  it("stopManagedProcess no pid reports and cleans up", async () => {
-    mockFs.existsSync.mockReturnValue(false);
-    const messages: string[] = [];
-    await stopManagedProcess("notebook", { onMessage: (l) => messages.push(l) });
-    expect(messages.some((m) => m.includes("No running notebook process found."))).toBe(true);
-    // should attempt cleanup regardless
-    expect(mockFs.unlinkSync).not.toHaveBeenCalled();
-  });
-
   it("stopManagedProcess sends SIGTERM then succeeds", async () => {
     mockFs.existsSync.mockReturnValue(true);
     mockFs.readFileSync.mockReturnValue(JSON.stringify({ pid: 7777 }));

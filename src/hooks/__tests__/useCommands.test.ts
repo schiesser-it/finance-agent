@@ -220,6 +220,98 @@ describe("useCommands", () => {
       expect(result.current.output.some((line) => line.includes("✅ Model set to:"))).toBe(true);
     });
 
+    it("should handle /mode command and show cleanup warning when destination file exists", async () => {
+      // Mock that current mode is notebook and no notebook file exists
+      mockConfig.readGenerationModeFromConfig.mockReturnValue("notebook");
+      mockArtifact.mode = "notebook";
+      mockArtifact.getFilePath.mockReturnValue("/test/cwd/analysis.ipynb");
+
+      // Mock that dashboard file exists (destination)
+      const dashboardArtifact = {
+        ...mockArtifact,
+        mode: "dashboard" as const,
+        fileName: "dashboard.py",
+        getFilePath: vi.fn(() => "/test/cwd/dashboard.py"),
+        lastTraceback: null,
+      };
+
+      // Mock createArtifact to return different artifacts based on mode
+      const { createArtifact } = await import("../../services/artifacts/factory.js");
+      vi.mocked(createArtifact).mockImplementation((mode) => {
+        if (mode === "dashboard") return dashboardArtifact as any;
+        return mockArtifact;
+      });
+
+      // Mock file system: notebook doesn't exist, dashboard exists
+      mockFs.existsSync.mockImplementation((filePath) => {
+        if (typeof filePath === "string") {
+          return filePath.includes("dashboard.py");
+        }
+        return false;
+      });
+
+      mockConfig.writeGenerationModeToConfig.mockImplementation(() => {});
+
+      const { result } = renderHook(() => useCommands());
+
+      await act(async () => {
+        await result.current.handleCommand("/mode dashboard");
+      });
+
+      expect(mockConfig.writeGenerationModeToConfig).toHaveBeenCalledWith("dashboard");
+      expect(result.current.output).toContain("✅ Mode set to: dashboard");
+      expect(
+        result.current.output.some((line) => line.includes("⚠️  A dashboard file already exists.")),
+      ).toBe(true);
+      expect(
+        result.current.output.some((line) =>
+          line.includes("Run /reset to delete it and start fresh"),
+        ),
+      ).toBe(true);
+    });
+
+    it("should not show cleanup warning when switching modes if source file exists (conversion flow)", async () => {
+      // Mock that current mode is notebook and notebook file exists
+      mockConfig.readGenerationModeFromConfig.mockReturnValue("notebook");
+      mockArtifact.mode = "notebook";
+      mockArtifact.getFilePath.mockReturnValue("/test/cwd/analysis.ipynb");
+
+      // Mock that dashboard file also exists (destination)
+      const dashboardArtifact = {
+        ...mockArtifact,
+        mode: "dashboard" as const,
+        fileName: "dashboard.py",
+        getFilePath: vi.fn(() => "/test/cwd/dashboard.py"),
+        lastTraceback: null,
+      };
+
+      const { createArtifact } = await import("../../services/artifacts/factory.js");
+      vi.mocked(createArtifact).mockImplementation((mode) => {
+        if (mode === "dashboard") return dashboardArtifact as any;
+        return mockArtifact;
+      });
+
+      // Mock file system: both files exist
+      mockFs.existsSync.mockReturnValue(true);
+
+      mockConfig.writeGenerationModeToConfig.mockImplementation(() => {});
+
+      const { result } = renderHook(() => useCommands());
+
+      await act(async () => {
+        await result.current.handleCommand("/mode dashboard");
+      });
+
+      expect(mockConfig.writeGenerationModeToConfig).toHaveBeenCalledWith("dashboard");
+      expect(result.current.output).toContain("✅ Mode set to: dashboard");
+      // Should not contain cleanup warning since conversion flow is triggered
+      expect(
+        result.current.output.some((line) => line.includes("⚠️  A dashboard file already exists.")),
+      ).toBe(false);
+      // Should have set up conversion flow
+      expect(result.current.runningCommand).toBe("confirm");
+    });
+
     it("should handle unknown commands", async () => {
       const { result } = renderHook(() => useCommands());
 
